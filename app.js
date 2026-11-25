@@ -158,7 +158,7 @@ function apply(path,data){const[c,id]=path.split('/');if(!data||typeof data!=='o
 function queue(path,ms=700){if(readonly)return;dirty.add(path);local();clearTimeout(timers[path]);timers[path]=setTimeout(()=>{delete timers[path];flush(path)},ms);status(remoteOn()?'Wird gespeichert …':'In diesem Browser gespeichert.')}
 const errMsg=e=>String((e&&(e.message||e.details))||'');
 async function flush(path){if(!remoteOn())return;if(busy[path]){again[path]=1;return}busy[path]=1;
- try{const{error}=await sb.rpc('save_entry',{p:C.planId,code,path,data:body(path)});if(error)throw error;dirty.delete(path);local();status('Gespeichert'+(isPublic?' · für alle mit dem Link sichtbar.':'.'))}
+ try{const{data:res,error}=await sb.rpc('save_entry',{p:C.planId,code,path,data:body(path)});if(error)throw error;if(res!=='ok')throw{message:String(res)};dirty.delete(path);local();status('Gespeichert'+(isPublic?' · für alle mit dem Link sichtbar.':'.'))}
  catch(e){const m=errMsg(e);if(/invalid code/i.test(m)){lock('Der Code ist nicht mehr gültig (wurde er geändert?). Änderungen bleiben lokal gesichert.')}else if(/locked/i.test(m))status('Zu viele falsche Codes – Bearbeiten ist für 15 Minuten gesperrt. Änderungen bleiben lokal.');else status('Offline oder Server nicht erreichbar – lokal gesichert, wird später nachgeladen.')}
  busy[path]=0;if(again[path]){again[path]=0;flush(path)}}
 const flushAll=()=>{if(remoteOn())[...dirty].forEach(p=>flush(p))};
@@ -166,7 +166,8 @@ addEventListener('online',flushAll);
 
 function setRO(v){readonly=v;document.body.classList.toggle('ro',v);sync(true);renderEditors()}
 async function pull(){const{data,error}=await sb.rpc('get_entries',{p:C.planId,code:readonly?null:code});
- if(error){status(/invalid code/i.test(errMsg(error))?'Dieser Plan ist nicht öffentlich – bitte Code eingeben.':'Daten konnten nicht geladen werden.');return false}
+ if(error){status('Daten konnten nicht geladen werden.');return false}
+ if(!isPublic&&readonly&&!(data||[]).length)status('Dieser Plan ist nicht öffentlich – bitte Code eingeben.');
  if(readonly){S.days={};S.weeks={};S.settings={phases:defPhases(),games:defGames()}}
  (data||[]).forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
  status(readonly?'Nur-Lese-Ansicht · Stand: live.':'Bearbeiten freigeschaltet · synchronisiert.');flushAll();return true}

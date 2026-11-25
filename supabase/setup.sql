@@ -36,8 +36,7 @@ drop policy if exists "members update" on public.plan_entries;
 drop policy if exists "public read"    on public.plan_entries;
 
 -- Direktes Lesen nur für öffentliche Pläne (nötig für Live-Aktualisierung). Direktes Schreiben: nie.
-create policy "public read" on public.plan_entries for select to anon, authenticated
-  using (exists (select 1 from public.plans p where p.plan_id = plan_entries.plan_id and p.is_public));
+-- (Policy wird unten nach der Funktion plan_is_public angelegt)
 revoke insert, update, delete on public.plan_entries from anon, authenticated;
 revoke all on public.plans, public.code_failures from anon, authenticated;
 
@@ -66,19 +65,25 @@ create or replace function public.get_entries(p text, code text default null)
 returns table(path text, data jsonb)
 language plpgsql volatile security definer set search_path = public as $$
 begin
-  if not public.plan_is_public(p) and not public.check_code(p, code) then raise exception 'invalid code'; end if;
+  if not public.plan_is_public(p) and not public.check_code(p, code) then return; end if;
   return query select e.path, e.data from public.plan_entries e where e.plan_id = p;
 end $$;
 
-create or replace function public.save_entry(p text, code text, path text, data jsonb) returns void
+drop function if exists public.save_entry(text,text,text,jsonb);
+create function public.save_entry(p text, code text, path text, data jsonb) returns text
 language plpgsql volatile security definer set search_path = public as $$
 begin
-  if not public.check_code(p, code) then raise exception 'invalid code'; end if;
-  if path !~ '^((days|weeks)/\d{4}-\d{2}-\d{2}|settings/main)$' then raise exception 'invalid path'; end if;
-  if jsonb_typeof(data) <> 'object' or octet_length(data::text) > 100000 then raise exception 'invalid data'; end if;
+  -- Kein raise bei falschem Code: sonst würde der Fehlversuch zurückgerollt und nie gezählt.
+  if not public.check_code(p, code) then return 'invalid code'; end if;
+  if path !~ '^((days|weeks)/\d{4}-\d{2}-\d{2}|settings/main)$' then return 'invalid path'; end if;
+  if jsonb_typeof(data) <> 'object' or octet_length(data::text) > 100000 then return 'invalid data'; end if;
   insert into public.plan_entries(plan_id, path, data, updated_at) values (p, path, data, now())
-  on conflict (plan_id, path) do update set data = excluded.data, updated_at = now();
+  on conflict on constraint plan_entries_pkey do update set data = excluded.data, updated_at = now();
+  return 'ok';
 end $$;
+
+create policy "public read" on public.plan_entries for select to anon, authenticated
+  using (public.plan_is_public(plan_id));
 
 revoke all on function public.check_code(text,text), public.get_entries(text,text), public.save_entry(text,text,text,jsonb), public.plan_is_public(text) from public;
 grant execute on function public.check_code(text,text), public.get_entries(text,text), public.save_entry(text,text,text,jsonb), public.plan_is_public(text) to anon, authenticated;
@@ -92,5 +97,5 @@ exception when duplicate_object then null; end $$;
 -- CODE ÄNDERN: 'HIER-EIGENEN-CODE' ersetzen (mind. 10 Zeichen, z. B. drei Wörter: puck-ossiach-sauna).
 -- Zum späteren Wechseln nur diesen Block mit neuem Code erneut ausführen; alte Geräte werden dann gesperrt.
 insert into public.plans (plan_id, is_public, edit_code_hash)
-values ('leo-woborsky-2026-27', true, crypt('HIER-EIGENEN-CODE', gen_salt('bf')))
+values ('leo-woborsky-2026-27', true, extensions.crypt('HIER-EIGENEN-CODE', extensions.gen_salt('bf')))
 on conflict (plan_id) do update set is_public = excluded.is_public, edit_code_hash = excluded.edit_code_hash;
