@@ -92,6 +92,23 @@ body.ro .pv{display:block;font-size:15px;white-space:pre-wrap;line-height:1.45}
 .pv .none{color:var(--mut);font-size:14px}
 body.ro .notes-print{display:block;white-space:pre-wrap;font-size:16px}
 .priv{font-size:13px;color:var(--mut);margin:6px 0 0}
+.gstat{grid-column:1/-1;font:700 14px "Saira Semi Condensed",sans-serif;padding-top:4px;border-top:1px solid rgba(255,255,255,.25)}
+.game.a .gstat{border-top-color:var(--line)}
+.gsf{border:1px solid var(--line);border-radius:8px;padding:6px 8px 8px;margin:0;display:flex;flex-direction:column;gap:6px}
+.gsf legend{font-size:13px;font-weight:600;color:var(--mut);padding:0 4px}
+.gsg{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:6px}
+.gsg .lab{white-space:nowrap}
+.gsg .in{padding:6px 2px;text-align:center;font-size:15px}
+body.ro .gsf{display:none}
+.sgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.sgrid div{background:var(--card);padding:8px 10px}
+.sgrid b{display:block;font:700 24px "Saira Semi Condensed",sans-serif;white-space:nowrap}
+.sgrid span{font-size:13px;color:var(--mut)}
+.glog{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+.glog th,.glog td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.glog th{font-size:13px;color:var(--mut);font-weight:600}
+.glog th:nth-child(-n+2),.glog td:nth-child(-n+2){text-align:left}
+.glog a{color:inherit}
 .day.rest{background:repeating-linear-gradient(135deg,var(--card) 0 10px,color-mix(in srgb,var(--line) 55%,var(--card)) 10px 20px)}
 .dtag{align-self:flex-start;font:700 13px "Saira Semi Condensed",sans-serif;padding:2px 8px;border-radius:4px;background:var(--ink);color:var(--card)}
 .dtag.dt-rest{background:#5A6585;color:#fff}.dtag.dt-travel{background:#2B44B8;color:#fff}.dtag.dt-test{background:var(--red);color:#fff}
@@ -143,7 +160,7 @@ details.box>div{padding:0 16px 16px}
  .mono{font-size:9px}
  .ha{font-size:9px;padding:0 3px}.badge{width:28px;height:28px}.game{grid-template-columns:28px minmax(0,1fr);gap:2px 5px}.ph{font-size:9px;padding:1px 5px}
  .dh .dd{font-size:18px}.game{padding:1.5mm}.opp{font-size:11px}
- .day input,.day textarea,.day select,.day .row,.day .ft,.day .lab{display:none}
+ .day input,.day textarea,.day select,.day .row,.day .ft,.day .lab,.gsf{display:none}
  .day.rest{background:#F1F3F8!important}
  .pv{display:block;font-size:10.5px;white-space:pre-wrap;border-top:1px solid var(--line);padding-top:1mm;min-height:6mm}
  .pv b{display:block;font-size:9px;color:var(--mut);text-transform:none}

@@ -34,6 +34,7 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 - **Tagesart** pro Tag: Training, Ruhetag (schraffiert, zählt in „Ruhetage“), Reisetag, Testtag.
 - **Fokus, Programm, RPE, Minuten, erledigt** und **Wochennotizen**.
 - **Phasen & Blöcke** (Planung anpassen): Urlaub, Camps, Übergänge, Saison und Sommertraining verschieben, ändern, löschen oder neu anlegen, mit eigenem Zusatz (z. B. „Camp Vierumäki“). Bei Überschneidung gilt Camp vor Urlaub vor Übergang vor Saison/Sommertraining.
+- **Spielstatistik** in jeder Spielkarte: Tore, Assists, +/-, Strafminuten, Schüsse, Eiszeit (mm:ss) und eine Spielnotiz. Die „Saisonbilanz“ summiert automatisch (Spiele zählen, sobald ein Wert eingetragen ist) und zeigt die letzten 8 Spiele.
 - **Spiele bearbeiten**: Verlegungen, Testspiele, Playoff-Spiele; Gegner aus der Liga oder frei eingeben.
 - „Standard wiederherstellen“ / „Spielplan zurücksetzen“ holt die Werte aus `plan.js` zurück.
 

@@ -7,6 +7,17 @@ const R0 = P.range.start, R1 = P.range.end;
 const PT = {saison:['Saison','var(--saison)',1],sommer:['Sommertraining','var(--sommer)',1],trans:['Übergang','var(--trans)',2],urlaub:['Urlaub','var(--urlaub)',3],camp:['Trainingscamp','var(--camp)',4]};
 const OUT = {t:'out'};
 const DT = {'':'Training',rest:'Ruhetag',travel:'Reisetag',test:'Testtag'};
+// Spielstatistik-Felder: [Schlüssel, Label, Kurz, Typ]
+const GS = [['gG','Tore','T','n'],['gA','Assists','A','n'],['gPM','+/-','+/-','pm'],['gPIM','PIM','PIM','n'],['gS','Schüsse','S','n'],['gTOI','Eiszeit','TOI','toi']];
+const gsKeys=GS.map(f=>f[0]).concat('gN');
+const hasStats=v=>GS.some(f=>String(v[f[0]]??'').trim()!=='');
+const toiSec=t=>{const m=String(t||'').match(/^(\d{1,2}):([0-5]\d)$/);return m?+m[1]*60+ +m[2]:null};
+const fmtToi=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
+const pmTxt=x=>x>0?'+'+x:String(x);
+function statLine(v){if(!hasStats(v))return'';const p=[];const n=k=>String(v[k]??'').trim();
+ if(n('gG')||n('gA')){const g=+n('gG')||0,a=+n('gA')||0;p.push(`${g} T · ${a} A`)}
+ if(n('gPM'))p.push(pmTxt(+n('gPM'))||'0');if(n('gPIM'))p.push(`${+n('gPIM')} PIM`);if(n('gS'))p.push(`${+n('gS')} Schüsse`);if(toiSec(n('gTOI'))!==null)p.push(`${n('gTOI')} Eiszeit`);
+ return p.join(' · ')}
 const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'],MONL=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],DN=['So','Mo','Di','Mi','Do','Fr','Sa'];
 const D=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(Date.UTC(y,m-1,d))};
 const iso=d=>d.toISOString().slice(0,10), add=(d,n)=>new Date(d.getTime()+n*864e5);
@@ -79,7 +90,9 @@ function renderRibbon(){
 }
 
 function dayHtml(d){const p=phase(d),dt=D(d),g=GM[d];
- const gh=g?`<div class="game ${g[2]==='H'?'h':'a'}">${badge(g)}<span class="ha">${g[2]==='H'?'HEIM':'AUSWÄRTS'}</span><span class="opp">${g[2]==='H'?'vs ':'@ '}${esc(oppName(g))}</span><span class="gm">${g[1]?esc(g[1])+' Uhr · ':''}${esc(venue(g))}</span></div>`:'';
+ const gh=g?`<div class="game ${g[2]==='H'?'h':'a'}">${badge(g)}<span class="ha">${g[2]==='H'?'HEIM':'AUSWÄRTS'}</span><span class="opp">${g[2]==='H'?'vs ':'@ '}${esc(oppName(g))}</span><span class="gm">${g[1]?esc(g[1])+' Uhr · ':''}${esc(venue(g))}</span><span class="gstat" data-gstat></span></div>
+  <fieldset class="gsf"><legend>Leos Statistik</legend><div class="gsg">${GS.map(f=>`<label class="lab">${f[1]}<input class="in" data-k="${f[0]}" ${f[3]==='toi'?'inputmode="numeric" placeholder="mm:ss" pattern="\\d{1,2}:[0-5]\\d" maxlength="5"':`type="number" inputmode="numeric" ${f[3]==='pm'?'min="-15"':'min="0"'} max="99"`}></label>`).join('')}</div>
+  <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label></fieldset>`:'';
  const f=p.t==='out'?'<p class="small" style="margin:0">Außerhalb des Planungszeitraums</p>':`
   <label class="lab">Tagesart<select data-k="t">${Object.entries(DT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
   <label class="lab">Fokus<input class="in" data-k="f" list="foci" placeholder="${g?'Spieltag':'z. B. Kraft Maximal'}" autocomplete="off"></label>
@@ -102,6 +115,7 @@ function sync(force){const w=weeks[cur],ds=wdays(w);
  document.querySelectorAll('.day').forEach(el=>{const v=S.days[el.dataset.d]||{};
   el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(v[k]??''))f.value=v[k]??'';f.disabled=readonly});
   const t=DT[v.t]&&v.t?v.t:'';el.classList.toggle('rest',t==='rest');const tag=el.querySelector('[data-dt]');tag.textContent=t?DT[t]:'';tag.hidden=!t;tag.className='dtag dt-'+(t||'none');
+  const gl=el.querySelector('[data-gstat]');if(gl){const t2=statLine(v);gl.textContent=t2+(v.gN?(t2?' · ':'')+v.gN:'');gl.hidden=!gl.textContent}
   const x=(+v.rpe||0)*(+v.min||0),l=el.querySelector('[data-load]');if(l)l.textContent=x?x+' AU':'–';
   const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||(t?'':'<span class="none">Kein Eintrag</span>')});
  const note=(S.weeks[w]||{}).note||'',n=$('wnote');if(n!==document.activeElement||force)n.value=note;n.disabled=readonly;
@@ -144,7 +158,13 @@ twoStep($('gmReset'),'Spielplan zurücksetzen',()=>{S.settings.games=defGames();
 const sortBtn=(id,arr,key)=>{$(id).onclick=()=>{if(readonly)return;S.settings[arr].sort((a,b)=>String(key(a)).localeCompare(String(key(b))));settingsChanged(true)}};
 sortBtn('phSort','phases',p=>p.from);sortBtn('gmSort','games',g=>g[0]+g[1]);
 
-function renderAll(){rebuildGames();renderRibbon();renderWeek();renderEditors()}
+function renderSeason(){const played=S.settings.games.filter(validGame).filter(g=>S.days[g[0]]&&hasStats(S.days[g[0]])).sort((a,b)=>a[0]<b[0]?-1:1);
+ const sum=k=>played.reduce((t,g)=>t+(+S.days[g[0]][k]||0),0);const G=sum('gG'),A=sum('gA'),PM=sum('gPM'),PIM=sum('gPIM'),SH=sum('gS');
+ const tois=played.map(g=>toiSec(S.days[g[0]].gTOI)).filter(x=>x!==null);const avg=tois.length?fmtToi(tois.reduce((a,b)=>a+b,0)/tois.length):'–';
+ $('season').innerHTML=played.length?`<div class="sgrid">${[[played.length,'Spiele'],[G,'Tore'],[A,'Assists'],[G+A,'Punkte'],[pmTxt(PM),'+/-'],[PIM,'Strafmin.'],[SH,'Schüsse'],[avg,'Ø Eiszeit']].map(x=>`<div><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}</div>
+  <table class="glog"><thead><tr><th>Datum</th><th>Gegner</th><th>T</th><th>A</th><th>+/-</th><th>TOI</th></tr></thead><tbody>${played.slice(-8).reverse().map(g=>{const v=S.days[g[0]];return `<tr><td><a href="#w-${weeks[weekOf(g[0])].replace(/-/g,'')}">${g[0].slice(8)}.${g[0].slice(5,7)}.</a></td><td>${g[2]==='H'?'vs':'@'} ${esc(oppShort(g))}</td><td>${esc(+v.gG||0)}</td><td>${esc(+v.gA||0)}</td><td>${String(v.gPM??'').trim()===''?'–':esc(pmTxt(+v.gPM))}</td><td>${toiSec(v.gTOI)!==null?esc(v.gTOI):'–'}</td></tr>`}).join('')}</tbody></table>${played.length>8?`<p class="small">Letzte 8 von ${played.length} Spielen.</p>`:''}`
+ :`<p class="small" style="margin:0">Noch keine Spielstatistik eingetragen. ${readonly?'':'Werte direkt in der Spielkarte am Spieltag eintragen.'}</p>`}
+function renderAll(){rebuildGames();renderRibbon();renderWeek();renderEditors();renderSeason()}
 
 // ---------- Speicher: lokal oder Supabase (Bearbeitungs-Code) ----------
 const status=t=>{$('status').textContent=t};
@@ -174,7 +194,7 @@ async function pull(){const{data,error}=await sb.rpc('get_entries',{p:C.planId,c
 
 let channel=null,poll=null;
 function live(){if(channel)return;
- channel=sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||(!readonly&&(dirty.has(r.path)||timers[r.path]||busy[r.path])))return;apply(r.path,r.data);local();if(r.path==='settings/main'){const a=document.activeElement;if(!a||!a.closest('#phEd,#gmEd'))renderAll();else{rebuildGames();renderRibbon();renderWeek()}}else sync()}).subscribe();
+ channel=sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||(!readonly&&(dirty.has(r.path)||timers[r.path]||busy[r.path])))return;apply(r.path,r.data);local();renderSeason();if(r.path==='settings/main'){const a=document.activeElement;if(!a||!a.closest('#phEd,#gmEd'))renderAll();else{rebuildGames();renderRibbon();renderWeek()}}else sync()}).subscribe();
  // Sicherheitsnetz, falls Live-Updates nicht ankommen (z. B. privater Plan): alle 60 s nachladen, wenn nichts offen ist
  poll=setInterval(()=>{if(document.hidden||Object.keys(timers).length||document.activeElement&&document.activeElement.closest('.day,#wnote,#phEd,#gmEd'))return;pull()},60000)}
 
@@ -207,17 +227,17 @@ $('print').onclick=()=>window.print();
 addEventListener('hashchange',()=>{const i=hashWeek();if(i!==null&&i!==cur){cur=i;renderWeek()}});
 addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))return;if(e.key==='ArrowLeft')go(cur-1);if(e.key==='ArrowRight')go(cur+1)});
 function edit(e){const f=e.target.closest('[data-k]');if(!f||readonly)return;const d=f.closest('.day').dataset.d,k=f.dataset.k;
- S.days[d]={...(S.days[d]||{}),[k]:f.type==='checkbox'?f.checked:f.value};sync();queue('days/'+d,f.type==='checkbox'||f.tagName==='SELECT'?50:700)}
+ S.days[d]={...(S.days[d]||{}),[k]:f.type==='checkbox'?f.checked:f.value};sync();if(gsKeys.includes(k))renderSeason();queue('days/'+d,f.type==='checkbox'||f.tagName==='SELECT'?50:700)}
 $('days').addEventListener('input',edit);$('days').addEventListener('change',e=>{if(e.target.type==='checkbox')edit(e)});
 $('wnote').addEventListener('input',e=>{if(readonly)return;const w=weeks[cur];S.weeks[w]={note:e.target.value};$('notesPrint').textContent=e.target.value;queue('weeks/'+w)});
 $('copyPrev').onclick=()=>{if(readonly||cur===0)return;const src=wdays(weeks[cur-1]),dst=wdays(weeks[cur]);let n=0;
  dst.forEach((d,i)=>{if(phase(d).t==='out')return;const s=S.days[src[i]]||{},v={...(S.days[d]||{})};let ch=0;['t','f','p','rpe','min'].forEach(k=>{if(s[k]&&!v[k]){v[k]=s[k];n++;ch=1}});if(ch){S.days[d]=v;queue('days/'+d,50)}});
  sync(true);status(n?`${n} Felder aus der Vorwoche übernommen (nur leere Felder).`:'Nichts zu übernehmen – Vorwoche leer oder Felder schon gefüllt.')};
-$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(v.t&&DT[v.t]?` · ${DT[v.t]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`:'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
+$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(v.t&&DT[v.t]?` · ${DT[v.t]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`+(statLine(v)?`\n  Statistik: ${statLine(v)}`:'')+(v.gN?`\n  Spielnotiz: ${v.gN}`:''):'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
  try{await navigator.clipboard.writeText(t.join('\n'));status('Woche in die Zwischenablage kopiert.')}catch(e){status('Kopieren wurde vom Browser blockiert.')}};
 $('export').onclick=()=>{const b=new Blob([JSON.stringify({planId:C.planId,exported:new Date().toISOString(),...S},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${C.planId||'plan'}-backup-${todayIso}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
 $('import').addEventListener('change',async e=>{const f=e.target.files[0];if(!f||readonly)return;try{const x=JSON.parse(await f.text());if(!x||typeof x!=='object'||typeof x.days!=='object')throw 0;
- Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};dirty.add('days/'+d)}});
+ Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};gsKeys.forEach(k=>{if(v[k]!=null)S.days[d][k]=String(v[k]).slice(0,140)});dirty.add('days/'+d)}});
  Object.entries(x.weeks||{}).forEach(([w,v])=>{if(isDate(w)&&v){S.weeks[w]={note:String(v.note??'')};dirty.add('weeks/'+w)}});
  if(x.settings){setSettings(x.settings);dirty.add('settings/main')}
  local();renderAll();flushAll();status('Backup eingespielt.')}catch(err){status('Diese Datei ist kein gültiges Backup.')}e.target.value=''});
