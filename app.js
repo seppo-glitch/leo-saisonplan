@@ -51,7 +51,7 @@ const pname=p=>!PT[p.t]?'':p.t==='camp'?'Camp'+(p.label?' '+p.label:''):PT[p.t][
 function wphase(w){const c={},o={};wdays(w).forEach(d=>{const p=phase(d);if(!PT[p.t])return;c[p.t]=(c[p.t]||0)+1;o[p.t]=p});
  const ks=Object.keys(c);if(!ks.length)return OUT;ks.sort((a,b)=>(PT[b][2]>2||PT[a][2]>2)?PT[b][2]-PT[a][2]:c[b]-c[a]);return o[ks[0]]}
 const oppName=g=>g[3]==='X'?g[4]:T[g[3]][0];
-const oppShort=g=>g[3]==='X'?g[4].split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase():T[g[3]][2];
+const oppShort=g=>g[3]==='X'?g[4].replace(/\(.*?\)/g,'').split(/\s+/).map(w=>w.replace(/[^\p{L}\d]/gu,'')).filter(Boolean).map(w=>w[0]).join('').slice(0,3).toUpperCase()||'?':T[g[3]][2];
 const venue=g=>g[2]==='H'?P.player.homeVenue:(g[3]==='X'?'auswärts':T[g[3]][1]);
 
 const now=new Date(),todayIso=iso(new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())));
