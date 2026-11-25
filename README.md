@@ -34,7 +34,8 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 - **Tagesart** pro Tag: Training, Ruhetag (schraffiert, zählt in „Ruhetage“), Reisetag, Testtag.
 - **Fokus, Programm, RPE, Minuten, erledigt** und **Wochennotizen**.
 - **Phasen & Blöcke** (Planung anpassen): Urlaub, Camps, Übergänge, Saison und Sommertraining verschieben, ändern, löschen oder neu anlegen, mit eigenem Zusatz (z. B. „Camp Vierumäki“). Bei Überschneidung gilt Camp vor Urlaub vor Übergang vor Saison/Sommertraining.
-- **Spielstatistik** in jeder Spielkarte: Tore, Assists, +/-, Strafminuten, Schüsse, Eiszeit (mm:ss) und eine Spielnotiz. Die „Saisonbilanz“ summiert automatisch (Spiele zählen, sobald ein Wert eingetragen ist) und zeigt die letzten 8 Spiele.
+- **Spielstatistik automatisch:** Nach jedem Spiel holt die Supabase-Funktion `sync-icehl-stats` Leos Werte aus dem offiziellen ICEHL-Spielbericht (Tore, Assists, +/-, PIM, Schüsse, Eiszeit, Linie, Position) – täglich 23:30 und 09:00 Uhr. Leos eigene Note und Kommentar bleiben unberührt.
+- **Spielstatistik** in jeder Spielkarte (falls kein automatischer Wert vorliegt, z. B. Testspiele): Tore, Assists, +/-, Strafminuten, Schüsse, Eiszeit (mm:ss) und eine Spielnotiz. Die „Saisonbilanz“ summiert automatisch (Spiele zählen, sobald ein Wert eingetragen ist) und zeigt die letzten 8 Spiele.
 - **Eigene Bewertung** pro Spiel: Note 1–10 und Kommentar („Was lief gut? Was will ich verbessern?“). Sichtbar für alle mit dem Link; die Saisonbilanz zeigt die Ø-Note und die Note je Spiel.
 - **Spiele bearbeiten**: Verlegungen, Testspiele, Playoff-Spiele; Gegner aus der Liga oder frei eingeben.
 - „Standard wiederherstellen“ / „Spielplan zurücksetzen“ holt die Werte aus `plan.js` zurück.

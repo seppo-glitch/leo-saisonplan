@@ -99,3 +99,10 @@ exception when duplicate_object then null; end $$;
 insert into public.plans (plan_id, is_public, edit_code_hash)
 values ('leo-woborsky-2026-27', true, extensions.crypt('HIER-EIGENEN-CODE', extensions.gen_salt('bf')))
 on conflict (plan_id) do update set is_public = excluded.is_public, edit_code_hash = excluded.edit_code_hash;
+
+-- ---------- Automatischer Statistik-Import (optional) ----------
+-- Edge Function supabase/functions/sync-icehl-stats deployen, dann:
+-- create extension if not exists pg_net; create extension if not exists pg_cron;
+-- public.trigger_icehl_sync() ruft die Funktion auf; Zeitplan (UTC):
+--   icehl-sync-late 45 21 * * * · icehl-sync-night 30 23 * * * · icehl-sync-morning 0 7 * * *
+-- Manuell nachladen: select public.trigger_icehl_sync(true);

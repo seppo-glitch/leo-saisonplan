@@ -15,7 +15,8 @@ const played=v=>!!v&&(hasStats(v)||!!v.gR);
 const toiSec=t=>{const m=String(t||'').match(/^(\d{1,2}):([0-5]\d)$/);return m?+m[1]*60+ +m[2]:null};
 const fmtToi=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
 const pmTxt=x=>x>0?'+'+x:String(x);
-function statLine(v){if(!hasStats(v))return'';const p=[];const n=k=>String(v[k]??'').trim();
+function statLine(v){if(v.gDNP)return'Nicht eingesetzt (laut Spielbericht)';if(!hasStats(v))return'';const p=[];const n=k=>String(v[k]??'').trim();
+ if(n('gLine'))p.push(`${n('gLine')}. Linie${n('gPos')?' '+n('gPos'):''}`);
  if(n('gG')||n('gA')){const g=+n('gG')||0,a=+n('gA')||0;p.push(`${g} T · ${a} A`)}
  if(n('gPM'))p.push(pmTxt(+n('gPM'))||'0');if(n('gPIM'))p.push(`${+n('gPIM')} PIM`);if(n('gS'))p.push(`${+n('gS')} Schüsse`);if(toiSec(n('gTOI'))!==null)p.push(`${n('gTOI')} Eiszeit`);
  return p.join(' · ')}
@@ -92,7 +93,7 @@ function renderRibbon(){
 
 function dayHtml(d){const p=phase(d),dt=D(d),g=GM[d];
  const gh=g?`<div class="game ${g[2]==='H'?'h':'a'}">${badge(g)}<span class="ha">${g[2]==='H'?'HEIM':'AUSWÄRTS'}</span><span class="opp">${g[2]==='H'?'vs ':'@ '}${esc(oppName(g))}</span><span class="gm">${g[1]?esc(g[1])+' Uhr · ':''}${esc(venue(g))}</span><span class="gstat" data-gstat></span></div>
-  <fieldset class="gsf"><legend>Leos Statistik</legend><div class="gsg">${GS.map(f=>`<label class="lab">${f[1]}<input class="in" data-k="${f[0]}" ${f[3]==='toi'?'inputmode="numeric" placeholder="mm:ss" pattern="\\d{1,2}:[0-5]\\d" maxlength="5"':`type="number" inputmode="numeric" ${f[3]==='pm'?'min="-15"':'min="0"'} max="99"`}></label>`).join('')}</div>
+  <fieldset class="gsf gst"><legend>Leos Statistik <span class="autob" data-auto hidden>automatisch · ICEHL</span></legend><div class="gsg">${GS.map(f=>`<label class="lab">${f[1]}<input class="in" data-k="${f[0]}" ${f[3]==='toi'?'inputmode="numeric" placeholder="mm:ss" pattern="\\d{1,2}:[0-5]\\d" maxlength="5"':`type="number" inputmode="numeric" ${f[3]==='pm'?'min="-15"':'min="0"'} max="99"`}></label>`).join('')}</div>
   <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label>
   <a class="srcl" href="https://www.ice.hockey/en/season/schedule" target="_blank" rel="noopener">Spielbericht auf ice.hockey ↗</a></fieldset>
   <fieldset class="gsf"><legend>Leos Bewertung</legend>
@@ -122,7 +123,8 @@ function sync(force){const w=weeks[cur],ds=wdays(w);
   el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(v[k]??''))f.value=v[k]??'';f.disabled=readonly});
   const t=DT[v.t]&&v.t?v.t:'';el.classList.toggle('rest',t==='rest');const tag=el.querySelector('[data-dt]');tag.textContent=t?DT[t]:'';tag.hidden=!t;tag.className='dtag dt-'+(t||'none');
   const gr=el.querySelector('[data-grate]');if(gr){const r=+v.gR||0;gr.innerHTML=(r?`<span class="rnum">${r}<small>/10</small></span><span class="rbar"><i style="width:${r*10}%"></i></span><span class="rlab">Leos Bewertung</span>`:'')+(v.gC?`<p>${esc(v.gC)}</p>`:'');gr.hidden=!r&&!v.gC;gr.classList.toggle('only-c',!r)}
-  const gl=el.querySelector('[data-gstat]');if(gl){const t2=statLine(v);gl.textContent=t2+(v.gN?(t2?' · ':'')+v.gN:'');gl.hidden=!gl.textContent}
+  const gl=el.querySelector('[data-gstat]');if(gl){const t2=statLine(v);gl.textContent=t2+(v.gN?(t2?' · ':'')+v.gN:'');gl.hidden=!gl.textContent;gl.title=v.gAuto?'Quelle: offizieller ICEHL-Spielbericht':''}
+  const au=el.querySelector('[data-auto]');if(au){const a=!!v.gAuto;au.hidden=!a;el.querySelectorAll('.gst .gsg [data-k]').forEach(f=>{f.readOnly=a;f.title=a?'Wird automatisch aus dem ICEHL-Spielbericht übernommen':''})}
   const x=(+v.rpe||0)*(+v.min||0),l=el.querySelector('[data-load]');if(l)l.textContent=x?x+' AU':'–';
   const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||(t?'':'<span class="none">Kein Eintrag</span>')});
  const note=(S.weeks[w]||{}).note||'',n=$('wnote');if(n!==document.activeElement||force)n.value=note;n.disabled=readonly;
