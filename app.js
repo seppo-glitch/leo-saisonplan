@@ -146,50 +146,56 @@ sortBtn('phSort','phases',p=>p.from);sortBtn('gmSort','games',g=>g[0]+g[1]);
 
 function renderAll(){rebuildGames();renderRibbon();renderWeek();renderEditors()}
 
-// ---------- Speicher: lokal oder Supabase ----------
+// ---------- Speicher: lokal oder Supabase (Bearbeitungs-Code) ----------
 const status=t=>{$('status').textContent=t};
-let sb=null, session=null;
-const remoteOn=()=>!!(sb&&session);
+const CK=LSK+'-code';
+let sb=null, code=null, isPublic=true;
+try{code=LS&&LS.getItem(CK)}catch(e){}
+const remoteOn=()=>!!(sb&&code&&!readonly);
 const timers={},busy={},again={};
 const body=path=>{const[c,id]=path.split('/');return c==='days'?(S.days[id]||{}):c==='weeks'?(S.weeks[id]||{}):S.settings};
 function apply(path,data){const[c,id]=path.split('/');if(!data||typeof data!=='object')return;if(c==='days')S.days[id]={...data};else if(c==='weeks')S.weeks[id]={...data};else if(path==='settings/main')setSettings(data)}
-function queue(path,ms=700){dirty.add(path);local();clearTimeout(timers[path]);timers[path]=setTimeout(()=>{delete timers[path];flush(path)},ms);status(remoteOn()?'Wird gespeichert …':'In diesem Browser gespeichert.')}
+function queue(path,ms=700){if(readonly)return;dirty.add(path);local();clearTimeout(timers[path]);timers[path]=setTimeout(()=>{delete timers[path];flush(path)},ms);status(remoteOn()?'Wird gespeichert …':'In diesem Browser gespeichert.')}
+const errMsg=e=>String((e&&(e.message||e.details))||'');
 async function flush(path){if(!remoteOn())return;if(busy[path]){again[path]=1;return}busy[path]=1;
- try{const{error}=await sb.from('plan_entries').upsert({plan_id:C.planId,path,data:body(path),updated_by:session.user.id,updated_at:new Date().toISOString()},{onConflict:'plan_id,path'});
-  if(error)throw error;dirty.delete(path);local();status('Gespeichert · für alle mit dem Link sichtbar.')}
- catch(e){const rls=e&&(e.code==='42501'||/row-level security/i.test(e.message||''));status(rls?'Kein Schreibrecht: Diese E-Mail ist für den Plan nicht freigeschaltet. Einträge bleiben lokal.':'Offline oder Server nicht erreichbar – lokal gesichert, wird später nachgeladen.')}
+ try{const{error}=await sb.rpc('save_entry',{p:C.planId,code,path,data:body(path)});if(error)throw error;dirty.delete(path);local();status('Gespeichert'+(isPublic?' · für alle mit dem Link sichtbar.':'.'))}
+ catch(e){const m=errMsg(e);if(/invalid code/i.test(m)){lock('Der Code ist nicht mehr gültig (wurde er geändert?). Änderungen bleiben lokal gesichert.')}else if(/locked/i.test(m))status('Zu viele falsche Codes – Bearbeiten ist für 15 Minuten gesperrt. Änderungen bleiben lokal.');else status('Offline oder Server nicht erreichbar – lokal gesichert, wird später nachgeladen.')}
  busy[path]=0;if(again[path]){again[path]=0;flush(path)}}
-const flushAll=()=>[...dirty].forEach(p=>flush(p));
+const flushAll=()=>{if(remoteOn())[...dirty].forEach(p=>flush(p))};
 addEventListener('online',flushAll);
 
-function setRO(v){readonly=v;document.body.classList.toggle('ro',v);sync(true)}
-async function pull(){const{data,error}=await sb.from('plan_entries').select('path,data').eq('plan_id',C.planId);
- if(error){status('Daten konnten nicht geladen werden: '+error.message);return}
+function setRO(v){readonly=v;document.body.classList.toggle('ro',v);sync(true);renderEditors()}
+async function pull(){const{data,error}=await sb.rpc('get_entries',{p:C.planId,code:readonly?null:code});
+ if(error){status(/invalid code/i.test(errMsg(error))?'Dieser Plan ist nicht öffentlich – bitte Code eingeben.':'Daten konnten nicht geladen werden.');return false}
  if(readonly){S.days={};S.weeks={};S.settings={phases:defPhases(),games:defGames()}}
- data.forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
- status(readonly?'Nur-Lese-Ansicht · Stand: live.':(data.length?'Synchronisiert.':'Angemeldet. Noch keine Einträge.'));if(!readonly)flushAll()}
+ (data||[]).forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
+ status(readonly?'Nur-Lese-Ansicht · Stand: live.':'Bearbeiten freigeschaltet · synchronisiert.');flushAll();return true}
 
-let channel=null;
-function live(){if(channel)return;channel=sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||(!readonly&&(dirty.has(r.path)||timers[r.path]||busy[r.path])))return;apply(r.path,r.data);local();if(r.path==='settings/main'){const a=document.activeElement;if(!a||!a.closest('#phEd,#gmEd'))renderAll();else{rebuildGames();renderRibbon();renderWeek()}}else sync()}).subscribe()}
+let channel=null,poll=null;
+function live(){if(channel)return;
+ channel=sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||(!readonly&&(dirty.has(r.path)||timers[r.path]||busy[r.path])))return;apply(r.path,r.data);local();if(r.path==='settings/main'){const a=document.activeElement;if(!a||!a.closest('#phEd,#gmEd'))renderAll();else{rebuildGames();renderRibbon();renderWeek()}}else sync()}).subscribe();
+ // Sicherheitsnetz, falls Live-Updates nicht ankommen (z. B. privater Plan): alle 60 s nachladen, wenn nichts offen ist
+ poll=setInterval(()=>{if(document.hidden||Object.keys(timers).length||document.activeElement&&document.activeElement.closest('.day,#wnote,#phEd,#gmEd'))return;pull()},60000)}
 
-async function checkMember(){const{data}=await sb.from('plan_members').select('email').eq('plan_id',C.planId).limit(1);const ok=!!(data&&data.length);setRO(!ok);
- if(!ok)status('Angemeldet, aber diese E-Mail ist für Einträge nicht freigeschaltet – nur Lesen.');return ok}
-
+function lock(msg){code=null;try{LS&&LS.removeItem(CK)}catch(e){}setRO(true);authUI();status(msg||'Bearbeiten gesperrt.');pull()}
 function authUI(){const a=$('auth');a.hidden=false;
- if(session){a.innerHTML=`<div class="row2"><span>Angemeldet als <b>${esc(session.user.email)}</b>${readonly?' · nur Lesen':' · Einträge sind für alle mit dem Link sichtbar'}</span><button class="btn" id="logout">Abmelden</button></div>`;$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
- a.innerHTML=`<div class="row2"><span>Ansicht für alle mit dem Link.</span><button class="btn" id="showLogin">Anmelden zum Eintragen</button></div><form id="login" hidden><label class="sr" for="em">E-Mail</label><input class="in" id="em" type="email" required placeholder="E-Mail von Leo oder Coach" autocomplete="email"><button class="btn pri">Login-Link senden</button><span id="lmsg" class="small" style="margin:0"></span></form>`;
- $('showLogin').onclick=()=>{$('login').hidden=false;$('showLogin').hidden=true;$('em').focus()};
- $('login').onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:$('em').value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});$('lmsg').textContent=error?'Fehler: '+error.message:'Link gesendet – bitte E-Mail öffnen.'}}
+ if(!readonly){a.innerHTML=`<div class="row2"><span><b>Bearbeiten freigeschaltet</b> auf diesem Gerät${isPublic?' · Änderungen sind für alle mit dem Link sichtbar':''}.</span><button class="btn" id="lockBtn">Sperren</button></div>`;$('lockBtn').onclick=()=>lock('Bearbeiten auf diesem Gerät gesperrt.');return}
+ a.innerHTML=`<div class="row2"><span>${isPublic?'Ansicht für alle mit dem Link.':'Privater Plan.'}</span><button class="btn" id="showCode">Bearbeiten</button></div><form id="codeForm" hidden><label class="sr" for="codeIn">Bearbeitungs-Code</label><input class="in" id="codeIn" type="password" required placeholder="Bearbeitungs-Code" autocomplete="current-password"><button class="btn pri">Freischalten</button><span id="cmsg" class="small" style="margin:0"></span></form>`;
+ $('showCode').onclick=()=>{$('codeForm').hidden=false;$('showCode').hidden=true;$('codeIn').focus()};
+ $('codeForm').onsubmit=async e=>{e.preventDefault();const c=$('codeIn').value.trim();$('cmsg').textContent='Prüfe …';
+  const{data,error}=await sb.rpc('check_code',{p:C.planId,code:c});
+  if(error){$('cmsg').textContent=/locked/i.test(errMsg(error))?'Zu viele Versuche – bitte in 15 Minuten erneut.':'Prüfung fehlgeschlagen – Verbindung?';return}
+  if(!data){$('cmsg').textContent='Code falsch.';return}
+  code=c;try{LS&&LS.setItem(CK,c)}catch(err){}setRO(false);authUI();await pull()}}
 
 async function initRemote(){
  if(!REMOTE){$('modeNote').textContent='Einträge werden nur in diesem Browser gespeichert. Lade regelmäßig ein Backup herunter – und spiele es auf einem neuen Gerät wieder ein.';status('Lokaler Modus.');return}
- $('modeNote').textContent='Einträge werden online gespeichert und sind für alle mit dem Link lesbar. Ein Backup als Datei ist trotzdem sinnvoll, z. B. zum Saisonende.';
+ $('modeNote').textContent='Einträge werden online gespeichert. Ein Backup als Datei ist trotzdem sinnvoll, z. B. zum Saisonende.';
  try{await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
-  sb=window.supabase.createClient(C.supabaseUrl,C.supabaseAnonKey);
-  session=(await sb.auth.getSession()).data.session;
-  if(session)await checkMember();
-  authUI();await pull();live();
-  sb.auth.onAuthStateChange(async(ev,s)=>{const had=!!session;session=s;if(!had&&s){await checkMember();authUI();await pull()}})}
+  sb=window.supabase.createClient(C.supabaseUrl,C.supabaseAnonKey,{auth:{persistSession:false}});
+  const pub=await sb.rpc('plan_is_public',{p:C.planId});isPublic=pub.data!==false;
+  if(code){const{data}=await sb.rpc('check_code',{p:C.planId,code});if(data)setRO(false);else{code=null;try{LS.removeItem(CK)}catch(e){}}}
+  authUI();await pull();live()}
  catch(e){status('Online-Speicher nicht erreichbar – zuletzt geladener Stand wird angezeigt.')}}
 
 // ---------- Ereignisse ----------

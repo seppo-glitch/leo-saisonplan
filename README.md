@@ -15,17 +15,19 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 
 **Lokal (Standard, `config.js` leer):** Einträge bleiben im Browser des jeweiligen Geräts. Über „Daten sichern“ ein Backup herunterladen und auf einem anderen Gerät einspielen. Gut für Leo allein, nicht für die Zusammenarbeit mit dem Coach.
 
-**Geteilt (Supabase, kostenloser Plan reicht):** Jeder mit dem Link sieht Leos Einträge live (ohne Login, nur lesen). Eintragen können nur freigeschaltete E-Mail-Adressen (Leo, Coach, BB Sports) nach Login per E-Mail-Link. Öffentlich lesbar ist der Plan, weil in `plans` `is_public = true` steht; auf `false` setzen, wenn nur Mitglieder lesen sollen.
-
-⚠️ Alles, was eingetragen wird, ist für jeden mit dem Link sichtbar – keine Verletzungs- oder Gesundheitsdetails in Notizen schreiben.
+**Geteilt (Supabase, kostenloser Plan reicht):** Jeder mit dem Link sieht Leos Einträge live, ohne Anmeldung. Bearbeiten kann nur, wer den **Bearbeitungs-Code** kennt – keine E-Mail-Adressen, kein Login.
 
 1. Auf supabase.com ein Projekt anlegen.
-2. SQL Editor → Inhalt von `supabase/setup.sql` einfügen, unten die E-Mail-Adressen anpassen → Run.
-3. Authentication → URL Configuration → **Site URL** und **Redirect URLs** auf die GitHub-Pages-Adresse setzen.
-4. Project Settings → API → `Project URL` und `anon public` Key in `config.js` eintragen und hochladen.
-5. Leo öffnet den Kalender, gibt seine E-Mail ein und klickt den Login-Link. Fertig.
+2. SQL Editor → Inhalt von `supabase/setup.sql` einfügen, ganz unten `HIER-EIGENEN-CODE` durch euren Code ersetzen (mind. 10 Zeichen, z. B. `puck-ossiach-sauna`) → Run.
+3. Project Settings → API → `Project URL` und `anon public` Key in `config.js` eintragen und hochladen.
+4. Leo öffnet den Kalender → „Bearbeiten“ → Code eingeben. Das Gerät bleibt freigeschaltet, bis man „Sperren“ klickt.
 
-Weitere Personen freischalten: im Supabase Table Editor eine Zeile in `plan_members` ergänzen. Einträge, die vor der Supabase-Einrichtung nur lokal gemacht wurden: vorher „Backup herunterladen“, nach dem Login „Backup einspielen“.
+- **Code wechseln** (z. B. wenn er weitergegeben wurde): den letzten Block in `setup.sql` mit neuem Code erneut ausführen. Alle Geräte mit dem alten Code werden gesperrt.
+- **Schutz gegen Raten:** Nach 10 falschen Codes in 15 Minuten ist Bearbeiten für 15 Minuten gesperrt.
+- **Nicht mehr öffentlich:** in `plans` `is_public` auf `false` setzen – dann sehen nur noch Personen mit Code den Plan.
+- Einträge, die vorher nur lokal gemacht wurden: „Backup herunterladen“, nach dem Freischalten „Backup einspielen“.
+
+⚠️ Alles, was eingetragen wird, ist für jeden mit dem Link sichtbar – keine Verletzungs- oder Gesundheitsdetails in Notizen schreiben.
 
 ## 3. Was Leo und der Coach direkt im Kalender ändern können
 
