@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leo Woborsky – Saisonplan</title>
+<meta name="theme-color" content="#06123A">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700;800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="mast band">
+ <div class="wrap">
+  <div class="top">
+   <img class="logo" src="assets/bb-logo.jpg" alt="BB – Bernd Brückler Sports Management">
+   <div class="who">
+    <h1 id="pname"></h1>
+    <p id="pmeta"></p>
+   </div>
+   <div class="tag"><b id="prange"></b>Joined forces – <i>Best results.</i></div>
+  </div>
+  <nav class="rib" aria-label="Saisonübersicht nach Wochen">
+   <div class="segs" id="segs"></div>
+   <div class="mons" id="mons" aria-hidden="true"></div>
+  </nav>
+  <div class="legend" id="legend"></div>
+ </div>
+</header>
+
+<div class="auth band" id="auth" hidden></div>
+
+<main class="band">
+ <div class="wrap">
+  <div class="wk">
+   <div><span class="kw" id="kw"></span><h2 id="wtitle"></h2></div>
+   <div class="nav">
+    <button class="btn" id="prev" aria-label="Vorherige Woche">← Woche</button>
+    <button class="btn" id="today">Heute</button>
+    <button class="btn" id="next" aria-label="Nächste Woche">Woche →</button>
+    <button class="btn pri" id="print">Drucken / PDF</button>
+   </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div id="hint"></div>
+  <div class="days" id="days"></div>
+
+  <div class="notes-print" id="notesPrint"></div>
+
+  <div class="lower">
+   <section class="box">
+    <h3>Wochennotizen</h3>
+    <label class="sr" for="wnote">Notizen zu dieser Woche</label>
+    <textarea id="wnote" placeholder="Ziele der Woche, Feedback vom Coach, Gewicht, Schlaf, Verletzungen, Reiseplanung …"></textarea>
+    <div class="acts">
+     <button class="btn" id="copyPrev">Programm der Vorwoche übernehmen</button>
+     <button class="btn" id="copyTxt">Woche als Text kopieren</button>
+    </div>
+    <div class="status" id="status" role="status"></div>
+   </section>
+   <div class="side">
+    <details class="box" open>
+     <summary>Planung anpassen</summary>
+     <div>
+      <label class="lab">Trainingscamp Finnland im April
+       <select id="aprCamp"></select>
+      </label>
+     </div>
+    </details>
+    <details class="box">
+     <summary>Daten sichern</summary>
+     <div>
+      <p class="small" id="modeNote"></p>
+      <div class="acts">
+       <button class="btn" id="export">Backup herunterladen</button>
+       <label class="btn file">Backup einspielen<input type="file" id="import" accept="application/json,.json" class="sr"></label>
+      </div>
+     </div>
+    </details>
+    <details class="box">
+     <summary>Gegner</summary>
+     <div><p class="small">Logos liegen im Ordner <code>logos/</code> als <code>KÜRZEL.png</code>. Fehlt eine Datei, erscheint das Kürzel.</p><div class="teams" id="teams"></div></div>
+    </details>
+   </div>
+  </div>
+ </div>
+</main>
+
+<footer class="band foot">
+ <div class="wrap" id="foot"></div>
+</footer>
+
+<datalist id="foci"><option>Spieltag</option><option>Regeneration</option><option>Kraft Maximal</option><option>Kraft Schnellkraft</option><option>Schnelligkeit</option><option>Ausdauer aerob</option><option>Ausdauer anaerob</option><option>Eis – Skills</option><option>Eis – Skating</option><option>Mobilität</option><option>Testtag</option><option>Reisetag</option><option>Frei</option></datalist>
+
+<script src="config.js"></script>
+<script src="plan.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
