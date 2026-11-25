@@ -27,17 +27,26 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 
 Weitere Personen freischalten: im Supabase Table Editor eine Zeile in `plan_members` ergänzen. Einträge, die vor der Supabase-Einrichtung nur lokal gemacht wurden: vorher „Backup herunterladen“, nach dem Login „Backup einspielen“.
 
-## 3. Pflege
+## 3. Was Leo und der Coach direkt im Kalender ändern können
 
-- **Spielverlegungen, neue Phasen, Spielerangaben:** nur `plan.js` bearbeiten (direkt im Browser auf GitHub mit dem Stift-Symbol).
+- **Tagesart** pro Tag: Training, Ruhetag (schraffiert, zählt in „Ruhetage“), Reisetag, Testtag.
+- **Fokus, Programm, RPE, Minuten, erledigt** und **Wochennotizen**.
+- **Phasen & Blöcke** (Planung anpassen): Urlaub, Camps, Übergänge, Saison und Sommertraining verschieben, ändern, löschen oder neu anlegen, mit eigenem Zusatz (z. B. „Camp Vierumäki“). Bei Überschneidung gilt Camp vor Urlaub vor Übergang vor Saison/Sommertraining.
+- **Spiele bearbeiten**: Verlegungen, Testspiele, Playoff-Spiele; Gegner aus der Liga oder frei eingeben.
+- „Standard wiederherstellen“ / „Spielplan zurücksetzen“ holt die Werte aus `plan.js` zurück.
+
+Alle Änderungen gelten sofort für alle, die den Link öffnen (bei Supabase-Modus). Es gilt „letzte Änderung gewinnt“ – zwei Personen sollten nicht gleichzeitig dieselben Blöcke bearbeiten.
+
+## 4. Pflege
+
+- **Spielerangaben und Standardplan:** `plan.js` (direkt auf GitHub mit dem Stift-Symbol). Laufende Änderungen an Phasen und Spielen besser im Kalender selbst machen.
 - **Vereinslogos:** als `logos/KÜRZEL.png` hochladen, siehe `logos/README.md`.
-- **April-Camp-Woche:** direkt im Kalender unter „Planung anpassen“.
 - **Weiterer Spieler:** Ordner kopieren, `plan.js` anpassen, in `config.js` eine neue `planId` setzen und in `plan_members` freischalten.
 
-## 4. Auf dem Handy
+## 5. Auf dem Handy
 
 Seite in Safari/Chrome öffnen → „Zum Home-Bildschirm“. Der Kalender startet dann wie eine App und funktioniert auch bei schlechtem Netz.
 
-## 5. PDF
+## 6. PDF
 
 „Drucken / PDF“ druckt die aktuelle Woche auf eine A4-Seite quer, inklusive aller Einträge. Im Druckdialog „Als PDF speichern“ wählen.

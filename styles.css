@@ -64,7 +64,7 @@ code{font-size:14px}
 .day{background:var(--card);border-radius:10px;border:1px solid var(--line);border-top:6px solid var(--c);padding:12px;display:flex;flex-direction:column;gap:10px}
 .day.out{opacity:.45}
 .day.today{box-shadow:0 0 0 2px var(--red)}
-.dh{display:flex;align-items:baseline;gap:8px}
+.dh{display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
 .dh .dd{font:800 30px "Saira Semi Condensed",sans-serif}
 .dh .dn{font-weight:600}.dh .dm{color:var(--mut);font-size:14px}
 .ph{margin-left:auto;font-size:13px;font-weight:600;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--c) 22%,transparent);white-space:nowrap}
@@ -92,6 +92,21 @@ body.ro .pv{display:block;font-size:15px;white-space:pre-wrap;line-height:1.45}
 .pv .none{color:var(--mut);font-size:14px}
 body.ro .notes-print{display:block;white-space:pre-wrap;font-size:16px}
 .priv{font-size:13px;color:var(--mut);margin:6px 0 0}
+.day.rest{background:repeating-linear-gradient(135deg,var(--card) 0 10px,color-mix(in srgb,var(--line) 55%,var(--card)) 10px 20px)}
+.dtag{align-self:flex-start;font:700 13px "Saira Semi Condensed",sans-serif;padding:2px 8px;border-radius:4px;background:var(--ink);color:var(--card)}
+.dtag.dt-rest{background:#5A6585;color:#fff}.dtag.dt-travel{background:#2B44B8;color:#fff}.dtag.dt-test{background:var(--red);color:#fff}
+.ph{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.side h4{font:700 17px "Saira Semi Condensed",sans-serif;margin:4px 0 6px}
+.ed{display:flex;flex-direction:column;gap:6px;max-height:460px;overflow:auto;padding-right:2px}
+.ed-row{display:grid;gap:6px;align-items:center;padding:6px;border-radius:8px;background:var(--field);border-left:5px solid var(--c,var(--line))}
+.ph-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,1fr) 44px}
+.gm-row{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) minmax(0,.9fr) minmax(0,1.4fr) 44px;border-left-color:var(--saison)}
+.gm-row .gn{grid-column:1/-1}
+.ed-row .in,.ed-row select{padding:6px 6px;font-size:15px;background:var(--card);min-height:40px}
+.ed-row.bad{outline:2px solid var(--red)}
+.btn.x{padding:0;justify-content:center;width:44px;font-size:20px}
+details.sub{margin-top:14px;border-top:1px solid var(--line)}details.sub summary{padding:12px 0;font-size:17px;cursor:pointer;font-family:"Saira Semi Condensed",sans-serif;font-weight:700;min-height:44px}
+@media(max-width:560px){.ph-row,.gm-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .lower{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:20px}
 @media(max-width:900px){.lower{grid-template-columns:minmax(0,1fr)}}
 .side{display:flex;flex-direction:column;gap:16px}
@@ -129,6 +144,7 @@ details.box>div{padding:0 16px 16px}
  .ha{font-size:9px;padding:0 3px}.badge{width:28px;height:28px}.game{grid-template-columns:28px minmax(0,1fr);gap:2px 5px}.ph{font-size:9px;padding:1px 5px}
  .dh .dd{font-size:18px}.game{padding:1.5mm}.opp{font-size:11px}
  .day input,.day textarea,.day select,.day .row,.day .ft,.day .lab{display:none}
+ .day.rest{background:#F1F3F8!important}
  .pv{display:block;font-size:10.5px;white-space:pre-wrap;border-top:1px solid var(--line);padding-top:1mm;min-height:6mm}
  .pv b{display:block;font-size:9px;color:var(--mut);text-transform:none}
  .notes-print::before{content:'Wochennotizen: ';font-weight:600}

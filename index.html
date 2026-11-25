@@ -66,9 +66,15 @@
     <details class="box edit-only" open>
      <summary>Planung anpassen</summary>
      <div>
-      <label class="lab">Trainingscamp Finnland im April
-       <select id="aprCamp"></select>
-      </label>
+      <h4>Phasen &amp; Blöcke</h4>
+      <p class="small">Urlaub, Camps, Übergänge verschieben oder neu anlegen. Bei Überschneidung gilt: Camp vor Urlaub vor Übergang vor Saison/Sommertraining.</p>
+      <div id="phEd" class="ed"></div>
+      <div class="acts"><button class="btn" id="phAdd">+ Block</button><button class="btn" id="phSort">Nach Datum sortieren</button><button class="btn" id="phReset">Standard wiederherstellen</button></div>
+      <details class="sub" id="gmDet"><summary id="gmSum">Spiele bearbeiten</summary>
+       <p class="small">Verlegungen, Testspiele oder Playoff-Spiele eintragen.</p>
+       <div id="gmEd" class="ed"></div>
+       <div class="acts"><button class="btn" id="gmAdd">+ Spiel</button><button class="btn" id="gmSort">Nach Datum sortieren</button><button class="btn" id="gmReset">Spielplan zurücksetzen</button></div>
+      </details>
      </div>
     </details>
     <details class="box">

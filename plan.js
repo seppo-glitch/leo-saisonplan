@@ -8,7 +8,8 @@ window.PLAN = {
   },
   range: { start: '2026-12-01', end: '2027-09-01' },
 
-  // Phasen in Reihenfolge; das April-Camp kommt aus den Einstellungen (aprilCamp).
+  // Standard-Phasen. Leo/Coach können sie im Kalender unter „Planung anpassen“ ändern;
+  // diese Werte gelten nur, bis dort etwas gespeichert wurde (oder nach „Standard wiederherstellen“).
   phases: [
     { key: 'saison', from: '2026-12-01', to: '2027-02-28' },
     { key: 'urlaub', from: '2027-03-01', to: '2027-03-14' },
@@ -17,13 +18,6 @@ window.PLAN = {
     { key: 'sommer', from: '2027-04-01', to: '2027-09-01' }
   ],
   aprilCampDefault: '2027-04-12',
-  aprilCampOptions: [
-    ['2027-04-05', '05.–11. April 2027'],
-    ['2027-04-12', '12.–18. April 2027'],
-    ['2027-04-19', '19.–25. April 2027'],
-    ['2027-04-26', '26. April – 02. Mai 2027']
-  ],
-
   // Kürzel: [Name, Stadt, Badge-Text]. Logo-Datei: logos/<KÜRZEL>.png
   teams: {
     IBK: ['HC TWK Innsbruck', 'Innsbruck', 'IBK'],
