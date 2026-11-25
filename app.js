@@ -46,9 +46,9 @@ const S={days:{},weeks:{},settings:{phases:defPhases(),games:defGames()}};
 function setSettings(x){if(!x||typeof x!=='object')return;
  const ph=cleanPhases(x.phases),gm=cleanGames(x.games);
  if(ph)S.settings.phases=ph;else if(isDate(x.aprCamp)){S.settings.phases=defPhases().map(p=>p.from===P.aprilCampDefault&&p.t==='camp'?{...p,from:x.aprCamp,to:iso(add(D(x.aprCamp),6))}:p)}
- if(gm)S.settings.games=gm}
+ if(gm)S.settings.games=gm;S.settings.custom=true}
 let LS=null, dirty=new Set();
-try{LS=window.localStorage;const x=JSON.parse(LS.getItem(LSK)||'null');if(x){Object.assign(S.days,x.days||{});Object.assign(S.weeks,x.weeks||{});setSettings(x.settings)}dirty=new Set(JSON.parse(LS.getItem(DK)||'[]'))}catch(e){LS=null}
+try{LS=window.localStorage;const x=JSON.parse(LS.getItem(LSK)||'null');if(x){Object.assign(S.days,x.days||{});Object.assign(S.weeks,x.weeks||{});if(x.settings&&x.settings.custom)setSettings(x.settings)}dirty=new Set(JSON.parse(LS.getItem(DK)||'[]'))}catch(e){LS=null}
 const local=()=>{try{LS&&(LS.setItem(LSK,JSON.stringify(S)),LS.setItem(DK,JSON.stringify([...dirty])))}catch(e){}};
 
 // ---------- Ableitungen ----------
@@ -74,6 +74,9 @@ const homeWeek=()=>todayIso>=START&&todayIso<=R1?weekOf(todayIso):0;
 let cur=hashWeek()??homeWeek(), readonly=REMOTE;
 if(REMOTE)document.body.classList.add('ro');
 
+// Logos: zuerst Supabase-Storage (Bucket „logos“), dann Ordner logos/ im Repository, sonst Kürzel
+const logoUrl=c=>C.supabaseUrl?`${C.supabaseUrl}/storage/v1/object/public/logos/${c}.png`:`logos/${c}.png`;
+const logoImg=c=>`<img src="${logoUrl(c)}" alt="" loading="lazy" onerror="if(!this.dataset.f&&this.src.indexOf('storage')>0){this.dataset.f=1;this.src='logos/${c}.png'}else this.remove()">`;
 // ---------- Kopf ----------
 const pl=P.player, fmt=s=>`${s.slice(8)}.${s.slice(5,7)}.${s.slice(0,4)}`;
 $('pname').innerHTML=`${esc(pl.name)} <span class="num">#${esc(pl.number)}</span>`;
@@ -82,9 +85,6 @@ $('prange').textContent=`Saisonplan ${fmt(R0)} – ${fmt(R1)}`;
 $('foot').innerHTML=`<b>BB Sports Management</b> · Bernd Brückler Sports Management. Spielplan Stand ${esc(P.asOf)}; Termine und Anspielzeiten können sich durch die Liga ändern.`;
 $('legend').innerHTML=['saison','urlaub','camp','sommer','trans'].map(p=>`<span><i style="--c:${PT[p][1]}"></i>${PT[p][0]}</span>`).join('')+'<span><i class="gh"></i>Heimspiel</span><span><i class="g"></i>Auswärtsspiel</span>';
 
-// Logos: zuerst Supabase-Storage (Bucket „logos“), dann Ordner logos/ im Repository, sonst Kürzel
-const logoUrl=c=>C.supabaseUrl?`${C.supabaseUrl}/storage/v1/object/public/logos/${c}.png`:`logos/${c}.png`;
-const logoImg=c=>`<img src="${logoUrl(c)}" alt="" loading="lazy" onerror="if(!this.dataset.f&&this.src.indexOf('storage')>0){this.dataset.f=1;this.src='logos/${c}.png'}else this.remove()">`;
 const badge=g=>g[3]==='X'?`<span class="badge"><span class="mono">${esc(oppShort(g))}</span></span>`:`<span class="badge"><span class="mono">${esc(T[g[3]][2])}</span>${logoImg(g[3])}</span>`;
 
 // ---------- Darstellung ----------
@@ -157,7 +157,7 @@ function renderEditors(){
   ${g[3]==='X'?`<label class="sr" for="gn${i}">Name</label><input class="in gn" id="gn${i}" data-f="4" value="${esc(g[4])}" placeholder="Gegner, z. B. EHC Kloten (Test)" maxlength="40">`:''}</div>`).join('');
 }
 let edTimer=null;
-function settingsChanged(full){rebuildGames();renderRibbon();renderWeek();if(full)renderEditors();queue('settings/main',600)}
+function settingsChanged(full){S.settings.custom=true;rebuildGames();renderRibbon();renderWeek();if(full)renderEditors();queue('settings/main',600)}
 $('phEd').addEventListener('input',e=>{const f=e.target.closest('[data-f]');if(!f||readonly)return;const row=f.closest('.ed-row'),i=+row.dataset.i;const p={...S.settings.phases[i],[f.dataset.f]:f.value};S.settings.phases[i]=p;row.classList.toggle('bad',!validPhase(p));row.style.setProperty('--c',col(p));settingsChanged(false)});
 $('phEd').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b||readonly)return;S.settings.phases.splice(+b.dataset.del,1);settingsChanged(true)});
 $('phAdd').onclick=()=>{if(readonly)return;const w=weeks[cur];S.settings.phases.push({t:'urlaub',from:w<R0?R0:w,to:iso(add(D(w),6))>R1?R1:iso(add(D(w),6)),label:''});settingsChanged(true);status('Neuer Block für die aktuelle Woche angelegt – Art und Daten anpassen.')};
@@ -165,7 +165,7 @@ $('gmEd').addEventListener('input',e=>{const f=e.target.closest('[data-f]');if(!
 $('gmEd').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b||readonly)return;S.settings.games.splice(+b.dataset.del,1);settingsChanged(true)});
 $('gmAdd').onclick=()=>{if(readonly)return;const w=weeks[cur];S.settings.games.push([w<R0?R0:w,'19:30','H','X','']);settingsChanged(true);$('gmDet').open=true;const r=$('gmEd').lastElementChild;r&&r.scrollIntoView({block:'nearest'})};
 function twoStep(btn,label,fn){let armed=0,t;btn.onclick=()=>{if(readonly)return;if(!armed){armed=1;btn.textContent='Wirklich? Nochmal klicken';t=setTimeout(()=>{armed=0;btn.textContent=label},4000);return}clearTimeout(t);armed=0;btn.textContent=label;fn()}}
-twoStep($('phReset'),'Standard wiederherstellen',()=>{S.settings.phases=defPhases();settingsChanged(true);status('Phasen auf den Standardplan zurückgesetzt.')});
+twoStep($('phReset'),'Standard wiederherstellen',()=>{S.settings.phases=defPhases();if(JSON.stringify(S.settings.games)===JSON.stringify(defGames()))S.settings.custom=false;settingsChanged(true);status('Phasen auf den Standardplan zurückgesetzt.')});
 twoStep($('gmReset'),'Spielplan zurücksetzen',()=>{S.settings.games=defGames();settingsChanged(true);status('Spielplan auf den Stand aus plan.js zurückgesetzt.')});
 const sortBtn=(id,arr,key)=>{$(id).onclick=()=>{if(readonly)return;S.settings[arr].sort((a,b)=>String(key(a)).localeCompare(String(key(b))));settingsChanged(true)}};
 sortBtn('phSort','phases',p=>p.from);sortBtn('gmSort','games',g=>g[0]+g[1]);
@@ -201,6 +201,7 @@ async function pull(){const{data,error}=await sb.rpc('get_entries',{p:C.planId,c
  if(error){status('Daten konnten nicht geladen werden.');return false}
  if(!isPublic&&readonly&&!(data||[]).length)status('Dieser Plan ist nicht öffentlich – bitte Code eingeben.');
  if(readonly){S.days={};S.weeks={};S.settings={phases:defPhases(),games:defGames()}}
+ if(!readonly&&!dirty.has('settings/main')&&!(data||[]).some(r=>r.path==='settings/main'))S.settings={phases:defPhases(),games:defGames()};
  (data||[]).forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
  status(readonly?'Nur-Lese-Ansicht · Stand: live.':'Bearbeiten freigeschaltet · synchronisiert.');flushAll();return true}
 
