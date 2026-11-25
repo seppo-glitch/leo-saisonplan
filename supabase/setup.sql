@@ -106,3 +106,7 @@ on conflict (plan_id) do update set is_public = excluded.is_public, edit_code_ha
 -- public.trigger_icehl_sync() ruft die Funktion auf; Zeitplan (UTC):
 --   icehl-sync-late 45 21 * * * · icehl-sync-night 30 23 * * * · icehl-sync-morning 0 7 * * *
 -- Manuell nachladen: select public.trigger_icehl_sync(true);
+
+-- ---------- Privates Feedback (nur mit Code lesbar) ----------
+-- Tabelle public.plan_private + Funktionen get_private(p, code) / save_private(p, code, path, data);
+-- angelegt per Migration „private_feedback“ (gleiches Muster wie get_entries/save_entry).

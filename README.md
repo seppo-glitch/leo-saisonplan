@@ -31,7 +31,9 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 
 ## 3. Was Leo und der Coach direkt im Kalender ändern können
 
-- **Tagesart** pro Tag: Training, Ruhetag (schraffiert, zählt in „Ruhetage“), Reisetag, Testtag.
+- **Tagesart** pro Tag: Training, Game Day (an Spieltagen automatisch), Recovery, Ruhetag (schraffiert), Reisetag, Testtag.
+- **Trainingsprogramm als Checkliste:** Der Coach schreibt das Programm, eine Übung pro Zeile (Zeilen mit „:“ am Ende = Überschrift). Leo hakt jede Übung einzeln ab; sind alle erledigt, wird der Tag automatisch als erledigt markiert.
+- **Feedback an Coach** pro Tag: nur für Personen mit Bearbeitungs-Code sichtbar (eigene, geschützte Tabelle `plan_private`), nie in der öffentlichen Ansicht oder im Ausdruck.
 - **Fokus, Programm, RPE, Minuten, erledigt** und **Wochennotizen**.
 - **Phasen & Blöcke** (Planung anpassen): Urlaub, Camps, Übergänge, Saison und Sommertraining verschieben, ändern, löschen oder neu anlegen, mit eigenem Zusatz (z. B. „Camp Vierumäki“). Bei Überschneidung gilt Camp vor Urlaub vor Übergang vor Saison/Sommertraining.
 - **Spielstatistik automatisch:** Nach jedem Spiel holt die Supabase-Funktion `sync-icehl-stats` Leos Werte aus dem offiziellen ICEHL-Spielbericht (Tore, Assists, +/-, PIM, Schüsse, Eiszeit, Linie, Position) – täglich 23:30 und 09:00 Uhr. Leos eigene Note und Kommentar bleiben unberührt.

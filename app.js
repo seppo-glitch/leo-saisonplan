@@ -6,12 +6,20 @@ const R0 = P.range.start, R1 = P.range.end;
 // Phasentypen: [Name, Farbe, Priorität bei Überschneidung]
 const PT = {saison:['Saison','var(--saison)',1],sommer:['Sommertraining','var(--sommer)',1],trans:['Übergang','var(--trans)',2],urlaub:['Urlaub','var(--urlaub)',3],camp:['Trainingscamp','var(--camp)',4]};
 const OUT = {t:'out'};
-const DT = {'':'Training',rest:'Ruhetag',travel:'Reisetag',test:'Testtag'};
+const DT = {train:'Training',game:'Game Day',recovery:'Recovery',rest:'Ruhetag',travel:'Reisetag',test:'Testtag'};
+// Tagesart: gespeicherter Wert, sonst automatisch „Game Day“ an Spieltagen, sonst Training
+const effT=(d,v)=>DT[v&&v.t]?v.t:(GM[d]?'game':'train');
 // Spielstatistik-Felder: [Schlüssel, Label, Kurz, Typ]
 const GS = [['gG','Tore','T','n'],['gA','Assists','A','n'],['gPM','+/-','+/-','pm'],['gPIM','PIM','PIM','n'],['gS','Schüsse','S','n'],['gTOI','Eiszeit','TOI','toi']];
 const gsKeys=GS.map(f=>f[0]).concat('gN','gR','gC');
 const hasStats=v=>GS.some(f=>String(v[f[0]]??'').trim()!=='');
 const played=v=>!!v&&(hasStats(v)||!!v.gR);
+// Trainingsprogramm als Checkliste: eine Übung pro Zeile; Zeilen mit „:“ am Ende oder „#“ am Anfang sind Überschriften
+const progLines=p=>String(p||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const isHead=l=>/:$/.test(l)||/^#/.test(l);
+const ckSet=v=>new Set(Array.isArray(v&&v.ck)?v.ck:[]);
+function clHtml(v){const ls=progLines(v.p);if(!ls.length)return'';const ck=ckSet(v);const items=ls.filter(l=>!isHead(l));const n=items.filter(l=>ck.has(l)).length;
+ return `<div class="clh"><span>Programm</span><span class="clp${items.length&&n===items.length?' all':''}">${n}/${items.length} erledigt</span></div><ul class="cl">${ls.map(l=>isHead(l)?`<li class="h">${esc(l.replace(/^#\s*/,''))}</li>`:`<li class="${ck.has(l)?'ok':''}"><label><input type="checkbox" data-ck="${esc(l)}"${ck.has(l)?' checked':''}><span>${esc(l)}</span></label></li>`).join('')}</ul>`}
 const toiSec=t=>{const m=String(t||'').match(/^(\d{1,2}):([0-5]\d)$/);return m?+m[1]*60+ +m[2]:null};
 const fmtToi=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
 const pmTxt=x=>x>0?'+'+x:String(x);
@@ -43,6 +51,7 @@ function cleanGames(a){return Array.isArray(a)?a.filter(Array.isArray).slice(0,1
 const REMOTE=!!(C.supabaseUrl&&C.supabaseAnonKey);
 const LSK='bb-plan-'+(C.planId||'default')+(REMOTE?'-remote':''), DK=LSK+'-dirty';
 const S={days:{},weeks:{},settings:{phases:defPhases(),games:defGames()}};
+let PRIV={}; // privates Feedback je Tag: nur mit Code lesbar
 function setSettings(x){if(!x||typeof x!=='object')return;
  const ph=cleanPhases(x.phases),gm=cleanGames(x.games);
  if(ph)S.settings.phases=ph;else if(isDate(x.aprCamp)){S.settings.phases=defPhases().map(p=>p.from===P.aprilCampDefault&&p.t==='camp'?{...p,from:x.aprCamp,to:iso(add(D(x.aprCamp),6))}:p)}
@@ -105,10 +114,12 @@ function dayHtml(d){const p=phase(d),dt=D(d),g=GM[d];
   <div class="grate" data-grate hidden></div>`:'';
  const f=p.t==='out'?'<p class="small" style="margin:0">Außerhalb des Planungszeitraums</p>':`
   <label class="lab">Tagesart<select data-k="t">${Object.entries(DT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
-  <label class="lab">Fokus<input class="in" data-k="f" list="foci" placeholder="${g?'Spieltag':'z. B. Kraft Maximal'}" autocomplete="off"></label>
-  <label class="lab">Trainingsprogramm<textarea data-k="p" rows="4" placeholder="Einheiten, Inhalte, Sätze × Wdh., Umfang …"></textarea></label>
+  <label class="lab">Fokus<input class="in" data-k="f" list="foci" placeholder="${g?'Game Day':'z. B. Kraft Maximal'}" autocomplete="off"></label>
+  <label class="lab edit-only">Trainingsprogramm (Plan)<textarea data-k="p" rows="4" placeholder="Eine Übung pro Zeile, z. B.&#10;Aufwärmen:&#10;Kniebeuge 5×3 @85 %&#10;Bankdrücken 4×6"></textarea></label>
+  <div class="clw" data-cl></div>
   <div class="row"><label class="lab">RPE (1–10)<select data-k="rpe"><option value="">–</option>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<option>${n}</option>`).join('')}</select></label><label class="lab">Minuten<input class="in" data-k="min" type="number" inputmode="numeric" min="0" max="600"></label></div>
   <div class="ft"><span>Last <span class="ld" data-load></span></span><label class="chk"><input type="checkbox" data-k="done">erledigt</label></div>
+  <label class="lab fbl edit-only">Feedback an Coach <span class="lockn">nur mit Code sichtbar</span><textarea data-fb rows="2" maxlength="1000" placeholder="Wie lief's? Was war zu viel oder zu wenig?"></textarea></label>
   <div class="pv" data-pv></div>`;
  return `<article class="day${p.t==='out'?' out':''}${d===todayIso?' today':''}" style="--c:${col(p)}" data-d="${d}"><div class="dh"><span class="dd">${String(dt.getUTCDate()).padStart(2,'0')}</span><span class="dn">${DN[dt.getUTCDay()]}</span><span class="dm">${MON[dt.getUTCMonth()]}</span>${PT[p.t]?`<span class="ph" title="${esc(pname(p))}">${esc(pname(p))}</span>`:''}</div><span class="dtag" data-dt></span>${gh}${f}</article>`}
 
@@ -123,18 +134,20 @@ function renderWeek(){const w=weeks[cur],ds=wdays(w),a=D(ds[0]),b=D(ds[6]);
 
 function sync(force){const w=weeks[cur],ds=wdays(w);
  document.querySelectorAll('.day').forEach(el=>{const v=S.days[el.dataset.d]||{};
-  el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(v[k]??''))f.value=v[k]??'';f.disabled=readonly});
-  const t=DT[v.t]&&v.t?v.t:'';el.classList.toggle('rest',t==='rest');const tag=el.querySelector('[data-dt]');tag.textContent=t?DT[t]:'';tag.hidden=!t;tag.className='dtag dt-'+(t||'none');
+  el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;const val=k==='t'?effT(el.dataset.d,v):(v[k]??'');if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(val))f.value=val;f.disabled=readonly});
+  const et=effT(el.dataset.d,v),t=et==='train'?'':et;el.classList.toggle('rest',t==='rest');el.classList.toggle('recov',t==='recovery');const tag=el.querySelector('[data-dt]');tag.textContent=t?DT[t]:'';tag.hidden=!t;tag.className='dtag dt-'+(t||'none');
   const gr=el.querySelector('[data-grate]');if(gr){const r=+v.gR||0;gr.innerHTML=(r?`<span class="rnum">${r}<small>/10</small></span><span class="rbar"><i style="width:${r*10}%"></i></span><span class="rlab">Leos Bewertung</span>`:'')+(v.gC?`<p>${esc(v.gC)}</p>`:'');gr.hidden=!r&&!v.gC;gr.classList.toggle('only-c',!r)}
   const gl=el.querySelector('[data-gstat]');if(gl){const t2=statLine(v);gl.textContent=t2+(v.gN?(t2?' · ':'')+v.gN:'');gl.hidden=!gl.textContent;gl.title=v.gAuto?'Quelle: offizieller ICEHL-Spielbericht':''}
   const au=el.querySelector('[data-auto]');if(au){const a=!!v.gAuto;au.hidden=!a;el.querySelectorAll('.gst .gsg [data-k]').forEach(f=>{f.readOnly=a;f.title=a?'Wird automatisch aus dem ICEHL-Spielbericht übernommen':''})}
   const x=(+v.rpe||0)*(+v.min||0),l=el.querySelector('[data-load]');if(l)l.textContent=x?x+' AU':'–';
-  const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||(t?'':'<span class="none">Kein Eintrag</span>')});
+  const cl=el.querySelector('[data-cl]');if(cl&&!(document.activeElement&&cl.contains(document.activeElement)&&!force)){const h=clHtml(v);if(cl.dataset.h!==h){cl.innerHTML=h;cl.dataset.h=h}cl.querySelectorAll('input').forEach(i=>i.disabled=readonly)}
+  const fb=el.querySelector('[data-fb]');if(fb){const t3=(PRIV[el.dataset.d]||{}).fb||'';if(fb!==document.activeElement||force)fb.value=t3;fb.disabled=readonly}
+  const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||(t||progLines(v.p).length?'':'<span class="none">Kein Eintrag</span>')});
  const note=(S.weeks[w]||{}).note||'',n=$('wnote');if(n!==document.activeElement||force)n.value=note;n.disabled=readonly;
  $('notesPrint').textContent=note||(readonly?'Keine Wochennotizen.':'');
  const gs=ds.map(d=>GM[d]).filter(Boolean),h=gs.filter(g=>g[2]==='H').length;
- let load=0,mins=0,done=0,plan=0,rest=0;ds.forEach(d=>{const v=S.days[d]||{};load+=(+v.rpe||0)*(+v.min||0);mins+=+v.min||0;if(v.done)done++;if(v.f||v.p)plan++;if(v.t==='rest')rest++});
- $('stats').innerHTML=[[String(gs.length),gs.length?`Spiele · ${h} Heim / ${gs.length-h} Auswärts`:'Spiele diese Woche'],[load?load.toLocaleString('de-AT'):'–','Wochenlast (RPE × Min, AU)'],[mins?`${Math.floor(mins/60)} h ${String(mins%60).padStart(2,'0')}`:'–','Trainingszeit'],[`${done} / ${plan}`,'Einheiten erledigt / geplant'],[String(rest),'Ruhetage']].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}
+ let load=0,mins=0,done=0,plan=0,rest=0,rec=0;ds.forEach(d=>{const v=S.days[d]||{};load+=(+v.rpe||0)*(+v.min||0);mins+=+v.min||0;if(v.done)done++;if(v.f||v.p)plan++;const et=effT(d,v);if(et==='rest')rest++;if(et==='recovery')rec++});
+ $('stats').innerHTML=[[String(gs.length),gs.length?`Spiele · ${h} Heim / ${gs.length-h} Auswärts`:'Spiele diese Woche'],[load?load.toLocaleString('de-AT'):'–','Wochenlast (RPE × Min, AU)'],[mins?`${Math.floor(mins/60)} h ${String(mins%60).padStart(2,'0')}`:'–','Trainingszeit'],[`${done} / ${plan}`,'Einheiten erledigt / geplant'],[`${rest} / ${rec}`,'Ruhetage / Recovery']].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}
 
 function renderTeams(){$('teams').innerHTML=Object.keys(T).map(c=>`<div class="team">${badge(['','','H',c])}<div>${esc(T[c][0])}<br><span class="small">logos/${c}.png</span></div></div>`).join('')}
 
@@ -194,6 +207,13 @@ async function flush(path){if(!remoteOn())return;if(busy[path]){again[path]=1;re
  catch(e){const m=errMsg(e);if(/invalid code/i.test(m)){lock('Der Code ist nicht mehr gültig (wurde er geändert?). Änderungen bleiben lokal gesichert.')}else if(/locked/i.test(m))status('Zu viele falsche Codes – Bearbeiten ist für 15 Minuten gesperrt. Änderungen bleiben lokal.');else status('Offline oder Server nicht erreichbar – lokal gesichert, wird später nachgeladen.')}
  busy[path]=0;if(again[path]){again[path]=0;flush(path)}}
 const flushAll=()=>{if(remoteOn())[...dirty].forEach(p=>flush(p))};
+const PK=LSK+'-priv',pTimers={};
+const localPriv=()=>{try{LS&&LS.setItem(PK,JSON.stringify(PRIV))}catch(e){}};
+try{if(!REMOTE||code)PRIV=JSON.parse((LS&&LS.getItem(PK))||'{}')||{}}catch(e){PRIV={}}
+function queuePriv(d){localPriv();clearTimeout(pTimers[d]);status(remoteOn()?'Wird gespeichert …':'In diesem Browser gespeichert.');pTimers[d]=setTimeout(async()=>{delete pTimers[d];if(!remoteOn())return;
+ try{const{data:res,error}=await sb.rpc('save_private',{p:C.planId,code,path:'days/'+d,data:PRIV[d]||{}});if(error)throw error;if(res!=='ok')throw{message:String(res)};status('Feedback gespeichert · nur mit Code sichtbar.')}
+ catch(err){status(/invalid code/i.test(errMsg(err))?'Code ungültig – Feedback nur lokal gesichert.':'Feedback lokal gesichert, Server nicht erreichbar.')}},700)}
+async function pullPriv(){if(!remoteOn())return;const{data,error}=await sb.rpc('get_private',{p:C.planId,code});if(error)return;const n={};(data||[]).forEach(r=>{const d=r.path.slice(5);if(isDate(d)&&r.data&&typeof r.data==='object')n[d]={fb:String(r.data.fb??'')}});Object.keys(pTimers).forEach(d=>{n[d]=PRIV[d]});PRIV=n;localPriv();sync()}
 addEventListener('online',flushAll);
 
 function setRO(v){readonly=v;document.body.classList.toggle('ro',v);sync(true);renderEditors()}
@@ -203,7 +223,7 @@ async function pull(){const{data,error}=await sb.rpc('get_entries',{p:C.planId,c
  if(readonly){S.days={};S.weeks={};S.settings={phases:defPhases(),games:defGames()}}
  if(!readonly&&!dirty.has('settings/main')&&!(data||[]).some(r=>r.path==='settings/main'))S.settings={phases:defPhases(),games:defGames()};
  (data||[]).forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
- status(readonly?'Nur-Lese-Ansicht · Stand: live.':'Bearbeiten freigeschaltet · synchronisiert.');flushAll();return true}
+ status(readonly?'Nur-Lese-Ansicht · Stand: live.':'Bearbeiten freigeschaltet · synchronisiert.');flushAll();if(!readonly)pullPriv();return true}
 
 let channel=null,poll=null;
 function live(){if(channel)return;
@@ -211,7 +231,7 @@ function live(){if(channel)return;
  // Sicherheitsnetz, falls Live-Updates nicht ankommen (z. B. privater Plan): alle 60 s nachladen, wenn nichts offen ist
  poll=setInterval(()=>{if(document.hidden||Object.keys(timers).length||document.activeElement&&document.activeElement.closest('.day,#wnote,#phEd,#gmEd'))return;pull()},60000)}
 
-function lock(msg){code=null;try{LS&&LS.removeItem(CK)}catch(e){}setRO(true);authUI();status(msg||'Bearbeiten gesperrt.');pull()}
+function lock(msg){code=null;PRIV={};try{LS&&(LS.removeItem(CK),LS.removeItem(PK))}catch(e){}setRO(true);authUI();status(msg||'Bearbeiten gesperrt.');pull()}
 function authUI(){const a=$('auth');a.hidden=false;
  if(!readonly){a.innerHTML=`<div class="row2"><span><b>Bearbeiten freigeschaltet</b> auf diesem Gerät${isPublic?' · Änderungen sind für alle mit dem Link sichtbar':''}.</span><button class="btn" id="lockBtn">Sperren</button></div>`;$('lockBtn').onclick=()=>lock('Bearbeiten auf diesem Gerät gesperrt.');return}
  a.innerHTML=`<div class="row2"><span>${isPublic?'Ansicht für alle mit dem Link.':'Privater Plan.'}</span><button class="btn" id="showCode">Bearbeiten</button></div><form id="codeForm" hidden><label class="sr" for="codeIn">Bearbeitungs-Code</label><input class="in" id="codeIn" type="password" required placeholder="Bearbeitungs-Code" autocomplete="current-password"><button class="btn pri">Freischalten</button><span id="cmsg" class="small" style="margin:0"></span></form>`;
@@ -241,18 +261,23 @@ addEventListener('hashchange',()=>{const i=hashWeek();if(i!==null&&i!==cur){cur=
 addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))return;if(e.key==='ArrowLeft')go(cur-1);if(e.key==='ArrowRight')go(cur+1)});
 function edit(e){const f=e.target.closest('[data-k]');if(!f||readonly)return;const d=f.closest('.day').dataset.d,k=f.dataset.k;
  S.days[d]={...(S.days[d]||{}),[k]:f.type==='checkbox'?f.checked:f.value};sync();if(gsKeys.includes(k))renderSeason();queue('days/'+d,f.type==='checkbox'||f.tagName==='SELECT'?50:700)}
-$('days').addEventListener('input',edit);$('days').addEventListener('change',e=>{if(e.target.type==='checkbox')edit(e)});
+$('days').addEventListener('input',e=>{if(e.target.matches('[data-fb]'))return editFb(e);edit(e)});
+$('days').addEventListener('change',e=>{if(e.target.matches('[data-ck]'))return tick(e);if(e.target.type==='checkbox')edit(e)});
+function tick(e){if(readonly)return;const i=e.target,d=i.closest('.day').dataset.d,line=i.dataset.ck;const v={...(S.days[d]||{})};const ck=ckSet(v);i.checked?ck.add(line):ck.delete(line);
+ const ls=progLines(v.p).filter(l=>!isHead(l));v.ck=ls.filter(l=>ck.has(l));if(ls.length&&v.ck.length===ls.length)v.done=true;S.days[d]=v;sync(true);queue('days/'+d,300)}
+function editFb(e){if(readonly)return;const d=e.target.closest('.day').dataset.d;PRIV[d]={fb:e.target.value};queuePriv(d)}
 $('wnote').addEventListener('input',e=>{if(readonly)return;const w=weeks[cur];S.weeks[w]={note:e.target.value};$('notesPrint').textContent=e.target.value;queue('weeks/'+w)});
 $('copyPrev').onclick=()=>{if(readonly||cur===0)return;const src=wdays(weeks[cur-1]),dst=wdays(weeks[cur]);let n=0;
- dst.forEach((d,i)=>{if(phase(d).t==='out')return;const s=S.days[src[i]]||{},v={...(S.days[d]||{})};let ch=0;['t','f','p','rpe','min'].forEach(k=>{if(s[k]&&!v[k]){v[k]=s[k];n++;ch=1}});if(ch){S.days[d]=v;queue('days/'+d,50)}});
+ dst.forEach((d,i)=>{if(phase(d).t==='out')return;const s=S.days[src[i]]||{},v={...(S.days[d]||{})};let ch=0;['t','f','p','rpe','min'].forEach(k=>{if(s[k]&&!v[k]&&!(k==='t'&&s[k]==='game')){v[k]=s[k];n++;ch=1}});if(ch){S.days[d]=v;queue('days/'+d,50)}});
  sync(true);status(n?`${n} Felder aus der Vorwoche übernommen (nur leere Felder).`:'Nichts zu übernehmen – Vorwoche leer oder Felder schon gefüllt.')};
-$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(v.t&&DT[v.t]?` · ${DT[v.t]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`+(statLine(v)?`\n  Statistik: ${statLine(v)}`:'')+(v.gN?`\n  Spielnotiz: ${v.gN}`:'')+(+v.gR?`\n  Eigene Note: ${+v.gR}/10`:'')+(v.gC?`\n  Kommentar: ${v.gC}`:''):'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
+$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(effT(d,v)!=='train'?` · ${DT[effT(d,v)]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`+(statLine(v)?`\n  Statistik: ${statLine(v)}`:'')+(v.gN?`\n  Spielnotiz: ${v.gN}`:'')+(+v.gR?`\n  Eigene Note: ${+v.gR}/10`:'')+(v.gC?`\n  Kommentar: ${v.gC}`:''):'')+(v.f?`\n  Fokus: ${v.f}`:'')+(progLines(v.p).length?'\n  Programm:'+progLines(v.p).map(l=>isHead(l)?`\n   ${l}`:`\n   [${ckSet(v).has(l)?'x':' '}] ${l}`).join(''):'')+((PRIV[d]||{}).fb&&!readonly?`\n  Feedback: ${PRIV[d].fb}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
  try{await navigator.clipboard.writeText(t.join('\n'));status('Woche in die Zwischenablage kopiert.')}catch(e){status('Kopieren wurde vom Browser blockiert.')}};
-$('export').onclick=()=>{const b=new Blob([JSON.stringify({planId:C.planId,exported:new Date().toISOString(),...S},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${C.planId||'plan'}-backup-${todayIso}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
+$('export').onclick=()=>{const b=new Blob([JSON.stringify({planId:C.planId,exported:new Date().toISOString(),...S,priv:readonly?undefined:PRIV},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${C.planId||'plan'}-backup-${todayIso}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
 $('import').addEventListener('change',async e=>{const f=e.target.files[0];if(!f||readonly)return;try{const x=JSON.parse(await f.text());if(!x||typeof x!=='object'||typeof x.days!=='object')throw 0;
- Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};gsKeys.forEach(k=>{if(v[k]!=null)S.days[d][k]=String(v[k]).slice(0,k==='gC'?600:140)});dirty.add('days/'+d)}});
+ Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};gsKeys.forEach(k=>{if(v[k]!=null)S.days[d][k]=String(v[k]).slice(0,k==='gC'?600:140)});if(Array.isArray(v.ck))S.days[d].ck=v.ck.map(String).slice(0,60);dirty.add('days/'+d)}});
  Object.entries(x.weeks||{}).forEach(([w,v])=>{if(isDate(w)&&v){S.weeks[w]={note:String(v.note??'')};dirty.add('weeks/'+w)}});
  if(x.settings){setSettings(x.settings);dirty.add('settings/main')}
+ if(x.priv&&typeof x.priv==='object')Object.entries(x.priv).forEach(([d,v])=>{if(isDate(d)&&v&&v.fb){PRIV[d]={fb:String(v.fb).slice(0,1000)};queuePriv(d)}});
  local();renderAll();flushAll();status('Backup eingespielt.')}catch(err){status('Diese Datei ist kein gültiges Backup.')}e.target.value=''});
 
 renderAll();renderTeams();initRemote();

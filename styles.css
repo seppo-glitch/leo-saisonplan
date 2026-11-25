@@ -93,6 +93,19 @@ body.ro .pv{display:block;font-size:15px;white-space:pre-wrap;line-height:1.45}
 .pv .none{color:var(--mut);font-size:14px}
 body.ro .notes-print{display:block;white-space:pre-wrap;font-size:16px}
 .priv{font-size:13px;color:var(--mut);margin:6px 0 0}
+.clw:empty{display:none}
+.clh{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;color:var(--mut);margin-bottom:4px}
+.clp{font-weight:700;color:var(--ink);white-space:nowrap}.clp.all{color:#fff;background:var(--saison);padding:0 6px;border-radius:4px}
+.cl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.cl li label{display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1.3;min-height:36px}
+.cl li label:hover{background:var(--field)}
+.cl input{width:20px;height:20px;flex:none;margin:0;accent-color:var(--red)}
+.cl li.ok span{text-decoration:line-through;color:var(--mut)}
+.cl li.h{font:700 13px "Saira Semi Condensed",sans-serif;color:var(--mut);padding:6px 4px 0;text-transform:none}
+body.ro .cl li label::before{content:'○';flex:none;width:20px;text-align:center;color:var(--mut)}
+body.ro .cl li.ok label::before{content:'✓';color:var(--saison);font-weight:800}
+.fbl textarea{min-height:60px}
+.lockn{font-weight:500;font-size:12px;color:var(--mut);margin-left:4px}
 .gstat{grid-column:1/-1;font:700 14px "Saira Semi Condensed",sans-serif;padding-top:4px;border-top:1px solid rgba(255,255,255,.25)}
 .game.a .gstat{border-top-color:var(--line)}
 .gsf{border:1px solid var(--line);border-radius:8px;padding:6px 8px 8px;margin:0;display:flex;flex-direction:column;gap:6px}
@@ -122,7 +135,8 @@ body.ro .gsf{display:none}
 .grate.only-c p{margin:0}
 .day.rest{background:repeating-linear-gradient(135deg,var(--card) 0 10px,color-mix(in srgb,var(--line) 55%,var(--card)) 10px 20px)}
 .dtag{align-self:flex-start;font:700 13px "Saira Semi Condensed",sans-serif;padding:2px 8px;border-radius:4px;background:var(--ink);color:var(--card)}
-.dtag.dt-rest{background:#5A6585;color:#fff}.dtag.dt-travel{background:#2B44B8;color:#fff}.dtag.dt-test{background:var(--red);color:#fff}
+.dtag.dt-rest{background:#5A6585;color:#fff}.dtag.dt-travel{background:#2B44B8;color:#fff}.dtag.dt-test{background:#6B4FBB;color:#fff}.dtag.dt-game{background:var(--red);color:#fff}.dtag.dt-recovery{background:#0E8A7A;color:#fff}
+.day.recov{background:linear-gradient(180deg,color-mix(in srgb,#0E8A7A 10%,var(--card)),var(--card) 40%)}
 .ph{flex:none;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .side h4{font:700 17px "Saira Semi Condensed",sans-serif;margin:4px 0 6px}
 .ed{display:flex;flex-direction:column;gap:6px;max-height:460px;overflow:auto;padding-right:2px}
@@ -172,6 +186,7 @@ details.box>div{padding:0 16px 16px}
  .ha{font-size:9px;padding:0 3px}.badge{width:28px;height:28px}.game{grid-template-columns:28px minmax(0,1fr);gap:2px 5px}.ph{font-size:9px;padding:1px 5px}
  .dh .dd{font-size:18px}.game{padding:1.5mm}.opp{font-size:11px}
  .day input,.day textarea,.day select,.day .row,.day .ft,.day .lab,.gsf{display:none}
+ .cl li label{min-height:0;padding:1px 0;font-size:10.5px}.cl li label::before{content:'○';width:12px}.cl li.ok label::before{content:'✓'}.clh{font-size:9px;margin:0}
  .day.rest{background:#F1F3F8!important}
  .pv{display:block;font-size:10.5px;white-space:pre-wrap;border-top:1px solid var(--line);padding-top:1mm;min-height:6mm}
  .pv b{display:block;font-size:9px;color:var(--mut);text-transform:none}
