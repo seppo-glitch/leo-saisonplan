@@ -49,21 +49,21 @@
   <div id="hint"></div>
   <div class="days" id="days"></div>
 
-  <div class="notes-print" id="notesPrint"></div>
-
   <div class="lower">
    <section class="box">
     <h3>Wochennotizen</h3>
     <label class="sr" for="wnote">Notizen zu dieser Woche</label>
-    <textarea id="wnote" placeholder="Ziele der Woche, Feedback vom Coach, Gewicht, Schlaf, Verletzungen, Reiseplanung …"></textarea>
-    <div class="acts">
+    <div class="notes-print" id="notesPrint"></div>
+    <textarea id="wnote" placeholder="Ziele der Woche, Feedback, Reiseplanung …"></textarea>
+    <p class="priv edit-only">Sichtbar für alle mit dem Link – keine medizinischen Details eintragen.</p>
+    <div class="acts edit-only">
      <button class="btn" id="copyPrev">Programm der Vorwoche übernehmen</button>
      <button class="btn" id="copyTxt">Woche als Text kopieren</button>
     </div>
     <div class="status" id="status" role="status"></div>
    </section>
    <div class="side">
-    <details class="box" open>
+    <details class="box edit-only" open>
      <summary>Planung anpassen</summary>
      <div>
       <label class="lab">Trainingscamp Finnland im April
@@ -77,7 +77,7 @@
       <p class="small" id="modeNote"></p>
       <div class="acts">
        <button class="btn" id="export">Backup herunterladen</button>
-       <label class="btn file">Backup einspielen<input type="file" id="import" accept="application/json,.json" class="sr"></label>
+       <label class="btn file edit-only">Backup einspielen<input type="file" id="import" accept="application/json,.json" class="sr"></label>
       </div>
      </div>
     </details>

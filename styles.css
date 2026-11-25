@@ -4,6 +4,7 @@
 --mut:light-dark(#5A6585,#97A2C4);--line:light-dark(#D9DEEB,#1D2A5E);--field:light-dark(#F6F8FC,#081133);
 --saison:#2B44B8;--sommer:#8EA2DC;--urlaub:#BFE4F2;--camp:#E3141B;--trans:#C4CAD8}
 *{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif;overflow-x:clip}
 h1,h2,h3{font-family:"Saira Semi Condensed",Figtree,sans-serif;line-height:1.05;margin:0}
 .band{padding:clamp(20px,3.5vw,48px) max(5vw,16px)}
@@ -72,7 +73,7 @@ code{font-size:14px}
 .badge{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#fff;overflow:hidden;grid-row:span 2;border:2px solid var(--red);position:relative}
 .badge img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:4px;background:#fff}
 .mono{font:800 13px "Saira Semi Condensed",sans-serif;color:var(--navy)}
-.ha{font:800 13px "Saira Semi Condensed",sans-serif;letter-spacing:.03em;justify-self:start;padding:1px 6px;max-width:100%;border-radius:4px;background:var(--red);color:#fff}
+.ha{font:800 13px "Saira Semi Condensed",sans-serif;letter-spacing:0;justify-self:start;padding:1px 5px;max-width:100%;border-radius:4px;background:var(--red);color:#fff}
 .game.a .ha{background:transparent;color:var(--saison);border:1.5px solid var(--saison)}
 .opp{font-weight:600;font-size:15px;line-height:1.2}
 .gm{grid-column:1/-1;font-size:13px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -85,6 +86,12 @@ textarea{resize:vertical;min-height:96px;line-height:1.4}
 .chk{display:inline-flex;align-items:center;gap:6px;min-height:44px;cursor:pointer;font-weight:600;color:var(--ink)}
 .chk input{width:20px;height:20px;accent-color:var(--red)}
 .pv{display:none}
+body.ro .day input,body.ro .day textarea,body.ro .day select,body.ro .day .row,body.ro .day .ft,body.ro .day .lab,body.ro #wnote,body.ro .edit-only{display:none!important}
+body.ro .pv{display:block;font-size:15px;white-space:pre-wrap;line-height:1.45}
+.pv b{display:block;font-size:12px;color:var(--mut);margin-top:6px}.pv b:first-child{margin-top:0}
+.pv .none{color:var(--mut);font-size:14px}
+body.ro .notes-print{display:block;white-space:pre-wrap;font-size:16px}
+.priv{font-size:13px;color:var(--mut);margin:6px 0 0}
 .lower{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:20px}
 @media(max-width:900px){.lower{grid-template-columns:minmax(0,1fr)}}
 .side{display:flex;flex-direction:column;gap:16px}
@@ -113,7 +120,7 @@ details.box>div{padding:0 16px 16px}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
  body{font-size:11px}
  .band{padding:6mm 0}
- .mast{padding:4mm 6mm}.mast::after,.rib,.legend,.auth,.nav,.lower,.foot,#hint{display:none!important}
+ .mast{padding:4mm 6mm}.mast::after,.rib,.legend,.auth,.nav,.foot,#hint{display:none!important}
  .logo{width:80px}.who h1{font-size:26px}.tag b{font-size:14px}
  .wk h2{font-size:22px}.stats{margin-top:3mm}.stat{padding:2mm 3mm}.stat b{font-size:16px}
  .days{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:2mm;margin-top:3mm}
@@ -124,5 +131,7 @@ details.box>div{padding:0 16px 16px}
  .day input,.day textarea,.day select,.day .row,.day .ft,.day .lab{display:none}
  .pv{display:block;font-size:10.5px;white-space:pre-wrap;border-top:1px solid var(--line);padding-top:1mm;min-height:6mm}
  .pv b{display:block;font-size:9px;color:var(--mut);text-transform:none}
+ .notes-print::before{content:'Wochennotizen: ';font-weight:600}
+ .lower{display:block!important}.lower .side,.lower h3,.lower .acts,.lower .status,.lower .priv,#wnote{display:none!important}.lower .box{border:0;padding:0}
  .notes-print{display:block;margin-top:3mm;border:1px solid var(--line);border-radius:2mm;padding:2mm 3mm;white-space:pre-wrap;min-height:18mm}
 }

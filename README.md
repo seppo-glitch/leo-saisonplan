@@ -15,7 +15,9 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 
 **Lokal (Standard, `config.js` leer):** Einträge bleiben im Browser des jeweiligen Geräts. Über „Daten sichern“ ein Backup herunterladen und auf einem anderen Gerät einspielen. Gut für Leo allein, nicht für die Zusammenarbeit mit dem Coach.
 
-**Geteilt (Supabase, kostenloser Plan reicht):** Leo, Coach und BB Sports sehen dieselben Einträge, live auf allen Geräten.
+**Geteilt (Supabase, kostenloser Plan reicht):** Jeder mit dem Link sieht Leos Einträge live (ohne Login, nur lesen). Eintragen können nur freigeschaltete E-Mail-Adressen (Leo, Coach, BB Sports) nach Login per E-Mail-Link. Öffentlich lesbar ist der Plan, weil in `plans` `is_public = true` steht; auf `false` setzen, wenn nur Mitglieder lesen sollen.
+
+⚠️ Alles, was eingetragen wird, ist für jeden mit dem Link sichtbar – keine Verletzungs- oder Gesundheitsdetails in Notizen schreiben.
 
 1. Auf supabase.com ein Projekt anlegen.
 2. SQL Editor → Inhalt von `supabase/setup.sql` einfügen, unten die E-Mail-Adressen anpassen → Run.
@@ -23,7 +25,7 @@ Hinweis: Mit einem kostenlosen GitHub-Konto muss das Repository für Pages **öf
 4. Project Settings → API → `Project URL` und `anon public` Key in `config.js` eintragen und hochladen.
 5. Leo öffnet den Kalender, gibt seine E-Mail ein und klickt den Login-Link. Fertig.
 
-Weitere Personen freischalten: im Supabase Table Editor eine Zeile in `plan_members` ergänzen. Bereits lokal erfasste Einträge werden beim ersten Login automatisch hochgeladen.
+Weitere Personen freischalten: im Supabase Table Editor eine Zeile in `plan_members` ergänzen. Einträge, die vor der Supabase-Einrichtung nur lokal gemacht wurden: vorher „Backup herunterladen“, nach dem Login „Backup einspielen“.
 
 ## 3. Pflege
 

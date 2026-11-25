@@ -18,7 +18,8 @@ const weeks=Array.from({length:NW},(_,i)=>iso(add(D(START),7*i)));
 const wdays=w=>Array.from({length:7},(_,i)=>iso(add(D(w),i)));
 
 // Zustand + lokaler Speicher
-const LSK='bb-plan-'+(C.planId||'default'), DK=LSK+'-dirty';
+const REMOTE=!!(C.supabaseUrl&&C.supabaseAnonKey);
+const LSK='bb-plan-'+(C.planId||'default')+(REMOTE?'-remote':''), DK=LSK+'-dirty';
 const S={days:{},weeks:{},settings:{aprCamp:P.aprilCampDefault}};
 let LS=null, dirty=new Set();
 try{LS=window.localStorage;const x=JSON.parse(LS.getItem(LSK)||'null');if(x){Object.assign(S.days,x.days||{});Object.assign(S.weeks,x.weeks||{});if(x.settings)Object.assign(S.settings,x.settings)}dirty=new Set(JSON.parse(LS.getItem(DK)||'[]'))}catch(e){LS=null}
@@ -30,7 +31,8 @@ const now=new Date(),todayIso=iso(new Date(Date.UTC(now.getFullYear(),now.getMon
 const weekOf=s=>{const n=Math.floor((D(s)-D(START))/864e5/7);return n<0?0:n>=NW?NW-1:n};
 const hashWeek=()=>{const m=location.hash.match(/^#w-(\d{4})(\d{2})(\d{2})$/);return m?weekOf(`${m[1]}-${m[2]}-${m[3]}`):null};
 const homeWeek=()=>todayIso>=START&&todayIso<=R1?weekOf(todayIso):0;
-let cur=hashWeek()??homeWeek(), readonly=false;
+let cur=hashWeek()??homeWeek(), readonly=REMOTE;
+if(REMOTE)document.body.classList.add('ro');
 
 // Kopf
 const pl=P.player, fmt=s=>`${s.slice(8)}.${s.slice(5,7)}.${s.slice(0,4)}`;
@@ -72,9 +74,9 @@ function sync(force){const w=weeks[cur],ds=wdays(w);
  document.querySelectorAll('.day').forEach(el=>{const v=S.days[el.dataset.d]||{};
   el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(v[k]??''))f.value=v[k]??'';f.disabled=readonly});
   const x=(+v.rpe||0)*(+v.min||0),l=el.querySelector('[data-load]');if(l)l.textContent=x?x+' AU':'–';
-  const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=(v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${v.rpe} × ${v.min} = ${x} AU${v.done?' ✓':''}`:'')});
+  const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||'<span class="none">Kein Eintrag</span>'});
  const note=(S.weeks[w]||{}).note||'',n=$('wnote');if(n!==document.activeElement||force)n.value=note;n.disabled=readonly;
- $('notesPrint').textContent=note?'Wochennotizen: '+note:'Wochennotizen:';
+ $('notesPrint').textContent=note||(readonly?'Keine Wochennotizen.':'');
  const gs=ds.map(d=>GM[d]).filter(Boolean),h=gs.filter(g=>g[2]==='H').length;
  let load=0,mins=0,done=0,plan=0;ds.forEach(d=>{const v=S.days[d]||{};load+=(+v.rpe||0)*(+v.min||0);mins+=+v.min||0;if(v.done)done++;if(v.f||v.p)plan++});
  $('stats').innerHTML=[[String(gs.length),gs.length?`Spiele · ${h} Heim / ${gs.length-h} Auswärts`:'Spiele diese Woche'],[load?load.toLocaleString('de-AT'):'–','Wochenlast (RPE × Min, AU)'],[mins?`${Math.floor(mins/60)} h ${String(mins%60).padStart(2,'0')}`:'–','Trainingszeit'],[`${done} / ${plan}`,'Einheiten erledigt / geplant']].map(s=>`<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}
@@ -98,27 +100,35 @@ async function flush(path){if(!remoteOn())return;if(busy[path]){again[path]=1;re
 const flushAll=()=>[...dirty].forEach(p=>flush(p));
 addEventListener('online',flushAll);
 
+function setRO(v){readonly=v;document.body.classList.toggle('ro',v);sync(true)}
 async function pull(){const{data,error}=await sb.from('plan_entries').select('path,data').eq('plan_id',C.planId);
  if(error){status('Daten konnten nicht geladen werden: '+error.message);return}
- data.forEach(r=>{if(!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
- if(!data.length&&!dirty.size)status('Angemeldet. Noch keine geteilten Einträge.');else status('Synchronisiert.');flushAll()}
+ if(readonly){S.days={};S.weeks={}}
+ data.forEach(r=>{if(readonly||!dirty.has(r.path))apply(r.path,r.data)});local();renderAll();
+ status(readonly?'Nur-Lese-Ansicht · Stand: live.':(data.length?'Synchronisiert.':'Angemeldet. Noch keine Einträge.'));if(!readonly)flushAll()}
 
-function live(){sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||dirty.has(r.path)||timers[r.path]||busy[r.path])return;apply(r.path,r.data);local();if(r.path==='settings/main')renderAll();else sync()}).subscribe()}
+let channel=null;
+function live(){if(channel)return;channel=sb.channel('plan-'+C.planId).on('postgres_changes',{event:'*',schema:'public',table:'plan_entries',filter:'plan_id=eq.'+C.planId},pl=>{const r=pl.new;if(!r||!r.path||(!readonly&&(dirty.has(r.path)||timers[r.path]||busy[r.path])))return;apply(r.path,r.data);local();if(r.path==='settings/main')renderAll();else sync()}).subscribe()}
+
+async function checkMember(){const{data}=await sb.from('plan_members').select('email').eq('plan_id',C.planId).limit(1);const ok=!!(data&&data.length);setRO(!ok);
+ if(!ok)status('Angemeldet, aber diese E-Mail ist für Einträge nicht freigeschaltet – nur Lesen.');return ok}
 
 function authUI(){const a=$('auth');a.hidden=false;
- if(session){a.innerHTML=`<div class="row2"><span>Angemeldet als <b>${esc(session.user.email)}</b> · Einträge werden geteilt.</span><button class="btn" id="logout">Abmelden</button></div>`;$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
- a.innerHTML=`<form id="login"><span>Anmelden, um Einträge mit dem Coach zu teilen:</span><label class="sr" for="em">E-Mail</label><input class="in" id="em" type="email" required placeholder="name@beispiel.at" autocomplete="email"><button class="btn pri">Login-Link senden</button><span id="lmsg" class="small" style="margin:0"></span></form>`;
- $('login').onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:$('em').value.trim(),options:{emailRedirectTo:location.origin+location.pathname}});$('lmsg').textContent=error?'Fehler: '+error.message:'Link gesendet – bitte E-Mail öffnen.'}}
+ if(session){a.innerHTML=`<div class="row2"><span>Angemeldet als <b>${esc(session.user.email)}</b>${readonly?' · nur Lesen':' · Einträge sind für alle mit dem Link sichtbar'}</span><button class="btn" id="logout">Abmelden</button></div>`;$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};return}
+ a.innerHTML=`<div class="row2"><span>Ansicht für alle mit dem Link.</span><button class="btn" id="showLogin">Anmelden zum Eintragen</button></div><form id="login" hidden><label class="sr" for="em">E-Mail</label><input class="in" id="em" type="email" required placeholder="E-Mail von Leo oder Coach" autocomplete="email"><button class="btn pri">Login-Link senden</button><span id="lmsg" class="small" style="margin:0"></span></form>`;
+ $('showLogin').onclick=()=>{$('login').hidden=false;$('showLogin').hidden=true;$('em').focus()};
+ $('login').onsubmit=async e=>{e.preventDefault();const{error}=await sb.auth.signInWithOtp({email:$('em').value.trim(),options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});$('lmsg').textContent=error?'Fehler: '+error.message:'Link gesendet – bitte E-Mail öffnen.'}}
 
 async function initRemote(){
- if(!C.supabaseUrl||!C.supabaseAnonKey){$('modeNote').textContent='Einträge werden nur in diesem Browser gespeichert. Lade regelmäßig ein Backup herunter – und spiele es auf einem neuen Gerät wieder ein.';status('Lokaler Modus.');return}
- $('modeNote').textContent='Einträge werden online geteilt. Ein Backup als Datei ist trotzdem sinnvoll, z. B. zum Saisonende.';
+ if(!REMOTE){$('modeNote').textContent='Einträge werden nur in diesem Browser gespeichert. Lade regelmäßig ein Backup herunter – und spiele es auf einem neuen Gerät wieder ein.';status('Lokaler Modus.');return}
+ $('modeNote').textContent='Einträge werden online gespeichert und sind für alle mit dem Link lesbar. Ein Backup als Datei ist trotzdem sinnvoll, z. B. zum Saisonende.';
  try{await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
   sb=window.supabase.createClient(C.supabaseUrl,C.supabaseAnonKey);
-  session=(await sb.auth.getSession()).data.session;authUI();
-  sb.auth.onAuthStateChange((ev,s)=>{const had=!!session;session=s;if(!had&&s){authUI();pull();live()}});
-  if(session){await pull();live()}else status('Nicht angemeldet – Einträge bleiben vorerst in diesem Browser.')}
- catch(e){status('Online-Speicher nicht erreichbar – Einträge bleiben in diesem Browser.')}}
+  session=(await sb.auth.getSession()).data.session;
+  if(session)await checkMember();
+  authUI();await pull();live();
+  sb.auth.onAuthStateChange(async(ev,s)=>{const had=!!session;session=s;if(!had&&s){await checkMember();authUI();await pull()}})}
+ catch(e){status('Online-Speicher nicht erreichbar – zuletzt geladener Stand wird angezeigt.')}}
 
 // ---------- Ereignisse ----------
 $('segs').addEventListener('click',e=>{const b=e.target.closest('.seg');if(b)go(+b.dataset.i)});
@@ -130,15 +140,15 @@ addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))retu
 function edit(e){const f=e.target.closest('[data-k]');if(!f||readonly)return;const d=f.closest('.day').dataset.d,k=f.dataset.k;
  S.days[d]={...(S.days[d]||{}),[k]:f.type==='checkbox'?f.checked:f.value};sync();queue('days/'+d,f.type==='checkbox'||f.tagName==='SELECT'?50:700)}
 $('days').addEventListener('input',edit);$('days').addEventListener('change',e=>{if(e.target.type==='checkbox')edit(e)});
-$('wnote').addEventListener('input',e=>{const w=weeks[cur];S.weeks[w]={note:e.target.value};$('notesPrint').textContent='Wochennotizen: '+e.target.value;queue('weeks/'+w)});
-$('aprCamp').addEventListener('change',e=>{S.settings.aprCamp=e.target.value;renderRibbon();renderWeek();queue('settings/main',50)});
-$('copyPrev').onclick=()=>{if(cur===0)return;const src=wdays(weeks[cur-1]),dst=wdays(weeks[cur]);let n=0;
+$('wnote').addEventListener('input',e=>{if(readonly)return;const w=weeks[cur];S.weeks[w]={note:e.target.value};$('notesPrint').textContent=e.target.value;queue('weeks/'+w)});
+$('aprCamp').addEventListener('change',e=>{if(readonly){e.target.value=S.settings.aprCamp;return}S.settings.aprCamp=e.target.value;renderRibbon();renderWeek();queue('settings/main',50)});
+$('copyPrev').onclick=()=>{if(readonly||cur===0)return;const src=wdays(weeks[cur-1]),dst=wdays(weeks[cur]);let n=0;
  dst.forEach((d,i)=>{if(phase(d)==='out')return;const s=S.days[src[i]]||{},v={...(S.days[d]||{})};let ch=0;['f','p','rpe','min'].forEach(k=>{if(s[k]&&!v[k]){v[k]=s[k];n++;ch=1}});if(ch){S.days[d]=v;queue('days/'+d,50)}});
  sync(true);status(n?`${n} Felder aus der Vorwoche übernommen (nur leere Felder).`:'Nichts zu übernehmen – Vorwoche leer oder Felder schon gefüllt.')};
 $('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}. [${PH[phase(d)][0]}]`+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${T[g[3]][0]} ${g[1]}`:'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
  try{await navigator.clipboard.writeText(t.join('\n'));status('Woche in die Zwischenablage kopiert.')}catch(e){status('Kopieren wurde vom Browser blockiert.')}};
 $('export').onclick=()=>{const b=new Blob([JSON.stringify({planId:C.planId,exported:new Date().toISOString(),...S},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${C.planId||'plan'}-backup-${todayIso}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
-$('import').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!x||typeof x!=='object'||typeof x.days!=='object')throw 0;
+$('import').addEventListener('change',async e=>{const f=e.target.files[0];if(!f||readonly)return;try{const x=JSON.parse(await f.text());if(!x||typeof x!=='object'||typeof x.days!=='object')throw 0;
  Object.entries(x.days||{}).forEach(([d,v])=>{if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&v&&typeof v==='object'){S.days[d]={f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};dirty.add('days/'+d)}});
  Object.entries(x.weeks||{}).forEach(([w,v])=>{if(/^\d{4}-\d{2}-\d{2}$/.test(w)&&v){S.weeks[w]={note:String(v.note??'')};dirty.add('weeks/'+w)}});
  if(x.settings&&typeof x.settings.aprCamp==='string'){S.settings.aprCamp=x.settings.aprCamp;dirty.add('settings/main')}
