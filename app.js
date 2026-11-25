@@ -77,12 +77,15 @@ if(REMOTE)document.body.classList.add('ro');
 // ---------- Kopf ----------
 const pl=P.player, fmt=s=>`${s.slice(8)}.${s.slice(5,7)}.${s.slice(0,4)}`;
 $('pname').innerHTML=`${esc(pl.name)} <span class="num">#${esc(pl.number)}</span>`;
-$('pmeta').textContent=`${pl.position} · ${pl.club} · ${pl.league}`;
+$('pmeta').innerHTML=`${esc(pl.position)} · <span class="club"><img src="${logoUrl('PIV')}" alt="" onerror="this.remove()">${esc(pl.club)}</span> · ${esc(pl.league)}`;
 $('prange').textContent=`Saisonplan ${fmt(R0)} – ${fmt(R1)}`;
 $('foot').innerHTML=`<b>BB Sports Management</b> · Bernd Brückler Sports Management. Spielplan Stand ${esc(P.asOf)}; Termine und Anspielzeiten können sich durch die Liga ändern.`;
 $('legend').innerHTML=['saison','urlaub','camp','sommer','trans'].map(p=>`<span><i style="--c:${PT[p][1]}"></i>${PT[p][0]}</span>`).join('')+'<span><i class="gh"></i>Heimspiel</span><span><i class="g"></i>Auswärtsspiel</span>';
 
-const badge=g=>g[3]==='X'?`<span class="badge"><span class="mono">${esc(oppShort(g))}</span></span>`:`<span class="badge"><span class="mono">${esc(T[g[3]][2])}</span><img src="logos/${g[3]}.png" alt="" onerror="this.remove()"></span>`;
+// Logos: zuerst Supabase-Storage (Bucket „logos“), dann Ordner logos/ im Repository, sonst Kürzel
+const logoUrl=c=>C.supabaseUrl?`${C.supabaseUrl}/storage/v1/object/public/logos/${c}.png`:`logos/${c}.png`;
+const logoImg=c=>`<img src="${logoUrl(c)}" alt="" loading="lazy" onerror="if(!this.dataset.f&&this.src.indexOf('storage')>0){this.dataset.f=1;this.src='logos/${c}.png'}else this.remove()">`;
+const badge=g=>g[3]==='X'?`<span class="badge"><span class="mono">${esc(oppShort(g))}</span></span>`:`<span class="badge"><span class="mono">${esc(T[g[3]][2])}</span>${logoImg(g[3])}</span>`;
 
 // ---------- Darstellung ----------
 function renderRibbon(){
