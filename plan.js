@@ -6,12 +6,12 @@ window.PLAN = {
     club: 'Pioneers Vorarlberg', league: 'win2day ICE Hockey League',
     homeVenue: 'Vorarlberghalle Feldkirch'
   },
-  range: { start: '2026-12-01', end: '2027-09-01' },
+  range: { start: '2026-11-25', end: '2027-09-01' },
 
   // Standard-Phasen. Leo/Coach können sie im Kalender unter „Planung anpassen“ ändern;
   // diese Werte gelten nur, bis dort etwas gespeichert wurde (oder nach „Standard wiederherstellen“).
   phases: [
-    { key: 'saison', from: '2026-12-01', to: '2027-02-28' },
+    { key: 'saison', from: '2026-11-25', to: '2027-02-28' },
     { key: 'urlaub', from: '2027-03-01', to: '2027-03-14' },
     { key: 'camp',   from: '2027-03-15', to: '2027-03-28' },
     { key: 'trans',  from: '2027-03-29', to: '2027-03-31' },
@@ -37,6 +37,8 @@ window.PLAN = {
 
   // [Datum, Uhrzeit, H = Heim / A = Auswärts, Gegner-Kürzel]
   games: [
+    ['2026-11-25', '19:30', 'H', 'IBK'], ['2026-11-27', '19:15', 'A', 'BWL'],
+    ['2026-11-29', '17:00', 'H', 'OLI'],
     ['2026-12-04', '19:30', 'H', 'IBK'], ['2026-12-06', '18:00', 'A', 'HCP'],
     ['2026-12-12', '16:00', 'A', 'OLI'], ['2026-12-13', '17:30', 'A', 'VSV'],
     ['2026-12-16', '19:30', 'H', 'VIC'], ['2026-12-18', '19:15', 'A', 'AVS'],

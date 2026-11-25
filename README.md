@@ -1,6 +1,6 @@
 # Saisonplan Leo Woborsky · BB Sports Management
 
-Wochenkalender 01.12.2026 – 01.09.2027 mit allen Spielen der Pioneers Vorarlberg, Trainingsphasen, Tagesfokus, Trainingsprogramm, Belastung (RPE × Minuten) und Wochennotizen. Läuft als statische Seite auf GitHub Pages, ohne Claude.
+Wochenkalender 25.11.2026 – 01.09.2027 mit allen Spielen der Pioneers Vorarlberg, Trainingsphasen, Tagesfokus, Trainingsprogramm, Belastung (RPE × Minuten) und Wochennotizen. Läuft als statische Seite auf GitHub Pages, ohne Claude.
 
 ## 1. Online stellen (GitHub Pages)
 

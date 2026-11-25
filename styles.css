@@ -109,6 +109,7 @@ body.ro .gsf{display:none}
 .glog th{font-size:13px;color:var(--mut);font-weight:600}
 .glog th:nth-child(-n+2),.glog td:nth-child(-n+2){text-align:left}
 .glog a{color:inherit}
+.srcl{font-size:13px;color:var(--saison);align-self:flex-start;padding:4px 0}
 .grate{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:center;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--red) 8%,var(--card));border:1px solid color-mix(in srgb,var(--red) 30%,var(--line))}
 .grate .rnum{grid-row:span 2;font:800 28px "Saira Semi Condensed",sans-serif;line-height:1}
 .grate .rnum small{font-size:14px;color:var(--mut);font-weight:600}

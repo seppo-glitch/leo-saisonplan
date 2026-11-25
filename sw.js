@@ -1,5 +1,5 @@
 // Offline-Fähigkeit: eigene Dateien zuerst aus dem Netz, bei Funkloch aus dem Cache.
-const CACHE = 'saisonplan-v4';
+const CACHE = 'saisonplan-v5';
 const SHELL = ['./', 'index.html', 'styles.css', 'app.js', 'plan.js', 'config.js', 'manifest.webmanifest', 'assets/bb-logo.jpg', 'assets/icon-192.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));

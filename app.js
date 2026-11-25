@@ -93,7 +93,8 @@ function renderRibbon(){
 function dayHtml(d){const p=phase(d),dt=D(d),g=GM[d];
  const gh=g?`<div class="game ${g[2]==='H'?'h':'a'}">${badge(g)}<span class="ha">${g[2]==='H'?'HEIM':'AUSWÄRTS'}</span><span class="opp">${g[2]==='H'?'vs ':'@ '}${esc(oppName(g))}</span><span class="gm">${g[1]?esc(g[1])+' Uhr · ':''}${esc(venue(g))}</span><span class="gstat" data-gstat></span></div>
   <fieldset class="gsf"><legend>Leos Statistik</legend><div class="gsg">${GS.map(f=>`<label class="lab">${f[1]}<input class="in" data-k="${f[0]}" ${f[3]==='toi'?'inputmode="numeric" placeholder="mm:ss" pattern="\\d{1,2}:[0-5]\\d" maxlength="5"':`type="number" inputmode="numeric" ${f[3]==='pm'?'min="-15"':'min="0"'} max="99"`}></label>`).join('')}</div>
-  <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label></fieldset>
+  <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label>
+  <a class="srcl" href="https://www.ice.hockey/en/season/schedule" target="_blank" rel="noopener">Spielbericht auf ice.hockey ↗</a></fieldset>
   <fieldset class="gsf"><legend>Leos Bewertung</legend>
   <label class="lab">Eigene Note (1–10)<select data-k="gR"><option value="">–</option>${[10,9,8,7,6,5,4,3,2,1].map(n=>`<option value="${n}">${n}${n===10?' – top':n===1?' – schwach':''}</option>`).join('')}</select></label>
   <label class="lab">Kommentar<textarea data-k="gC" rows="3" maxlength="600" placeholder="Was lief gut? Was will ich verbessern?"></textarea></label></fieldset>
