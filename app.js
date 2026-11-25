@@ -9,8 +9,9 @@ const OUT = {t:'out'};
 const DT = {'':'Training',rest:'Ruhetag',travel:'Reisetag',test:'Testtag'};
 // Spielstatistik-Felder: [Schlüssel, Label, Kurz, Typ]
 const GS = [['gG','Tore','T','n'],['gA','Assists','A','n'],['gPM','+/-','+/-','pm'],['gPIM','PIM','PIM','n'],['gS','Schüsse','S','n'],['gTOI','Eiszeit','TOI','toi']];
-const gsKeys=GS.map(f=>f[0]).concat('gN');
+const gsKeys=GS.map(f=>f[0]).concat('gN','gR','gC');
 const hasStats=v=>GS.some(f=>String(v[f[0]]??'').trim()!=='');
+const played=v=>!!v&&(hasStats(v)||!!v.gR);
 const toiSec=t=>{const m=String(t||'').match(/^(\d{1,2}):([0-5]\d)$/);return m?+m[1]*60+ +m[2]:null};
 const fmtToi=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
 const pmTxt=x=>x>0?'+'+x:String(x);
@@ -92,7 +93,11 @@ function renderRibbon(){
 function dayHtml(d){const p=phase(d),dt=D(d),g=GM[d];
  const gh=g?`<div class="game ${g[2]==='H'?'h':'a'}">${badge(g)}<span class="ha">${g[2]==='H'?'HEIM':'AUSWÄRTS'}</span><span class="opp">${g[2]==='H'?'vs ':'@ '}${esc(oppName(g))}</span><span class="gm">${g[1]?esc(g[1])+' Uhr · ':''}${esc(venue(g))}</span><span class="gstat" data-gstat></span></div>
   <fieldset class="gsf"><legend>Leos Statistik</legend><div class="gsg">${GS.map(f=>`<label class="lab">${f[1]}<input class="in" data-k="${f[0]}" ${f[3]==='toi'?'inputmode="numeric" placeholder="mm:ss" pattern="\\d{1,2}:[0-5]\\d" maxlength="5"':`type="number" inputmode="numeric" ${f[3]==='pm'?'min="-15"':'min="0"'} max="99"`}></label>`).join('')}</div>
-  <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label></fieldset>`:'';
+  <label class="lab">Spielnotiz<input class="in" data-k="gN" maxlength="140" placeholder="z. B. 2. Linie, PP-Einsatz"></label></fieldset>
+  <fieldset class="gsf"><legend>Leos Bewertung</legend>
+  <label class="lab">Eigene Note (1–10)<select data-k="gR"><option value="">–</option>${[10,9,8,7,6,5,4,3,2,1].map(n=>`<option value="${n}">${n}${n===10?' – top':n===1?' – schwach':''}</option>`).join('')}</select></label>
+  <label class="lab">Kommentar<textarea data-k="gC" rows="3" maxlength="600" placeholder="Was lief gut? Was will ich verbessern?"></textarea></label></fieldset>
+  <div class="grate" data-grate hidden></div>`:'';
  const f=p.t==='out'?'<p class="small" style="margin:0">Außerhalb des Planungszeitraums</p>':`
   <label class="lab">Tagesart<select data-k="t">${Object.entries(DT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
   <label class="lab">Fokus<input class="in" data-k="f" list="foci" placeholder="${g?'Spieltag':'z. B. Kraft Maximal'}" autocomplete="off"></label>
@@ -115,6 +120,7 @@ function sync(force){const w=weeks[cur],ds=wdays(w);
  document.querySelectorAll('.day').forEach(el=>{const v=S.days[el.dataset.d]||{};
   el.querySelectorAll('[data-k]').forEach(f=>{if(f===document.activeElement&&!force)return;const k=f.dataset.k;if(f.type==='checkbox')f.checked=!!v[k];else if(f.value!==String(v[k]??''))f.value=v[k]??'';f.disabled=readonly});
   const t=DT[v.t]&&v.t?v.t:'';el.classList.toggle('rest',t==='rest');const tag=el.querySelector('[data-dt]');tag.textContent=t?DT[t]:'';tag.hidden=!t;tag.className='dtag dt-'+(t||'none');
+  const gr=el.querySelector('[data-grate]');if(gr){const r=+v.gR||0;gr.innerHTML=(r?`<span class="rnum">${r}<small>/10</small></span><span class="rbar"><i style="width:${r*10}%"></i></span><span class="rlab">Leos Bewertung</span>`:'')+(v.gC?`<p>${esc(v.gC)}</p>`:'');gr.hidden=!r&&!v.gC;gr.classList.toggle('only-c',!r)}
   const gl=el.querySelector('[data-gstat]');if(gl){const t2=statLine(v);gl.textContent=t2+(v.gN?(t2?' · ':'')+v.gN:'');gl.hidden=!gl.textContent}
   const x=(+v.rpe||0)*(+v.min||0),l=el.querySelector('[data-load]');if(l)l.textContent=x?x+' AU':'–';
   const pv=el.querySelector('[data-pv]');if(pv)pv.innerHTML=((v.f?`<b>Fokus</b>${esc(v.f)}`:'')+(v.p?`<b>Programm</b>${esc(v.p)}`:'')+(x?`<b>Last</b>${esc(v.rpe)} × ${esc(v.min)} = ${x} AU`:'')+(v.done?'<b>Status</b>erledigt ✓':''))||(t?'':'<span class="none">Kein Eintrag</span>')});
@@ -158,11 +164,11 @@ twoStep($('gmReset'),'Spielplan zurücksetzen',()=>{S.settings.games=defGames();
 const sortBtn=(id,arr,key)=>{$(id).onclick=()=>{if(readonly)return;S.settings[arr].sort((a,b)=>String(key(a)).localeCompare(String(key(b))));settingsChanged(true)}};
 sortBtn('phSort','phases',p=>p.from);sortBtn('gmSort','games',g=>g[0]+g[1]);
 
-function renderSeason(){const played=S.settings.games.filter(validGame).filter(g=>S.days[g[0]]&&hasStats(S.days[g[0]])).sort((a,b)=>a[0]<b[0]?-1:1);
- const sum=k=>played.reduce((t,g)=>t+(+S.days[g[0]][k]||0),0);const G=sum('gG'),A=sum('gA'),PM=sum('gPM'),PIM=sum('gPIM'),SH=sum('gS');
- const tois=played.map(g=>toiSec(S.days[g[0]].gTOI)).filter(x=>x!==null);const avg=tois.length?fmtToi(tois.reduce((a,b)=>a+b,0)/tois.length):'–';
- $('season').innerHTML=played.length?`<div class="sgrid">${[[played.length,'Spiele'],[G,'Tore'],[A,'Assists'],[G+A,'Punkte'],[pmTxt(PM),'+/-'],[PIM,'Strafmin.'],[SH,'Schüsse'],[avg,'Ø Eiszeit']].map(x=>`<div><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}</div>
-  <table class="glog"><thead><tr><th>Datum</th><th>Gegner</th><th>T</th><th>A</th><th>+/-</th><th>TOI</th></tr></thead><tbody>${played.slice(-8).reverse().map(g=>{const v=S.days[g[0]];return `<tr><td><a href="#w-${weeks[weekOf(g[0])].replace(/-/g,'')}">${g[0].slice(8)}.${g[0].slice(5,7)}.</a></td><td>${g[2]==='H'?'vs':'@'} ${esc(oppShort(g))}</td><td>${esc(+v.gG||0)}</td><td>${esc(+v.gA||0)}</td><td>${String(v.gPM??'').trim()===''?'–':esc(pmTxt(+v.gPM))}</td><td>${toiSec(v.gTOI)!==null?esc(v.gTOI):'–'}</td></tr>`}).join('')}</tbody></table>${played.length>8?`<p class="small">Letzte 8 von ${played.length} Spielen.</p>`:''}`
+function renderSeason(){const pl_=S.settings.games.filter(validGame).filter(g=>played(S.days[g[0]])).sort((a,b)=>a[0]<b[0]?-1:1);const rated=pl_.map(g=>+S.days[g[0]].gR).filter(x=>x>0);const avgR=rated.length?(rated.reduce((a,b)=>a+b,0)/rated.length).toFixed(1).replace('.',','):'–';
+ const sum=k=>pl_.reduce((t,g)=>t+(+S.days[g[0]][k]||0),0);const G=sum('gG'),A=sum('gA'),PM=sum('gPM'),PIM=sum('gPIM'),SH=sum('gS');
+ const tois=pl_.map(g=>toiSec(S.days[g[0]].gTOI)).filter(x=>x!==null);const avg=tois.length?fmtToi(tois.reduce((a,b)=>a+b,0)/tois.length):'–';
+ $('season').innerHTML=pl_.length?`<div class="sgrid">${[[pl_.length,'Spiele'],[G,'Tore'],[A,'Assists'],[G+A,'Punkte'],[pmTxt(PM),'+/-'],[PIM,'Strafmin.'],[SH,'Schüsse'],[avg,'Ø Eiszeit'],[avgR,'Ø Eigene Note']].map(x=>`<div><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}</div>
+  <table class="glog"><thead><tr><th>Datum</th><th>Gegner</th><th>T</th><th>A</th><th>+/-</th><th>TOI</th><th>Note</th></tr></thead><tbody>${pl_.slice(-8).reverse().map(g=>{const v=S.days[g[0]];return `<tr><td><a href="#w-${weeks[weekOf(g[0])].replace(/-/g,'')}">${g[0].slice(8)}.${g[0].slice(5,7)}.</a></td><td>${g[2]==='H'?'vs':'@'} ${esc(oppShort(g))}</td><td>${esc(+v.gG||0)}</td><td>${esc(+v.gA||0)}</td><td>${String(v.gPM??'').trim()===''?'–':esc(pmTxt(+v.gPM))}</td><td>${toiSec(v.gTOI)!==null?esc(v.gTOI):'–'}</td><td>${+v.gR?esc(+v.gR):'–'}</td></tr>`}).join('')}</tbody></table>${pl_.length>8?`<p class="small">Letzte 8 von ${pl_.length} Spielen.</p>`:''}`
  :`<p class="small" style="margin:0">Noch keine Spielstatistik eingetragen. ${readonly?'':'Werte direkt in der Spielkarte am Spieltag eintragen.'}</p>`}
 function renderAll(){rebuildGames();renderRibbon();renderWeek();renderEditors();renderSeason()}
 
@@ -233,11 +239,11 @@ $('wnote').addEventListener('input',e=>{if(readonly)return;const w=weeks[cur];S.
 $('copyPrev').onclick=()=>{if(readonly||cur===0)return;const src=wdays(weeks[cur-1]),dst=wdays(weeks[cur]);let n=0;
  dst.forEach((d,i)=>{if(phase(d).t==='out')return;const s=S.days[src[i]]||{},v={...(S.days[d]||{})};let ch=0;['t','f','p','rpe','min'].forEach(k=>{if(s[k]&&!v[k]){v[k]=s[k];n++;ch=1}});if(ch){S.days[d]=v;queue('days/'+d,50)}});
  sync(true);status(n?`${n} Felder aus der Vorwoche übernommen (nur leere Felder).`:'Nichts zu übernehmen – Vorwoche leer oder Felder schon gefüllt.')};
-$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(v.t&&DT[v.t]?` · ${DT[v.t]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`+(statLine(v)?`\n  Statistik: ${statLine(v)}`:'')+(v.gN?`\n  Spielnotiz: ${v.gN}`:''):'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
+$('copyTxt').onclick=async()=>{const w=weeks[cur];const t=[`${pl.name} · ${$('kw').textContent} · ${$('wtitle').textContent}`,''].concat(wdays(w).map(d=>{const v=S.days[d]||{},g=GM[d],dt=D(d),p=phase(d);return `${DN[dt.getUTCDay()]} ${d.slice(8)}.${d.slice(5,7)}.${pname(p)?` [${pname(p)}]`:''}`+(v.t&&DT[v.t]?` · ${DT[v.t]}`:'')+(g?` · ${g[2]==='H'?'HEIM vs':'AUSWÄRTS @'} ${oppName(g)} ${g[1]}`+(statLine(v)?`\n  Statistik: ${statLine(v)}`:'')+(v.gN?`\n  Spielnotiz: ${v.gN}`:'')+(+v.gR?`\n  Eigene Note: ${+v.gR}/10`:'')+(v.gC?`\n  Kommentar: ${v.gC}`:''):'')+(v.f?`\n  Fokus: ${v.f}`:'')+(v.p?`\n  Programm: ${v.p}`:'')+(v.rpe&&v.min?`\n  Last: ${v.rpe} × ${v.min} = ${v.rpe*v.min} AU`:'')}));const n=(S.weeks[w]||{}).note;if(n)t.push('','Notizen: '+n);
  try{await navigator.clipboard.writeText(t.join('\n'));status('Woche in die Zwischenablage kopiert.')}catch(e){status('Kopieren wurde vom Browser blockiert.')}};
 $('export').onclick=()=>{const b=new Blob([JSON.stringify({planId:C.planId,exported:new Date().toISOString(),...S},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${C.planId||'plan'}-backup-${todayIso}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)};
 $('import').addEventListener('change',async e=>{const f=e.target.files[0];if(!f||readonly)return;try{const x=JSON.parse(await f.text());if(!x||typeof x!=='object'||typeof x.days!=='object')throw 0;
- Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};gsKeys.forEach(k=>{if(v[k]!=null)S.days[d][k]=String(v[k]).slice(0,140)});dirty.add('days/'+d)}});
+ Object.entries(x.days||{}).forEach(([d,v])=>{if(isDate(d)&&v&&typeof v==='object'){S.days[d]={t:DT[v.t]?String(v.t):'',f:String(v.f??''),p:String(v.p??''),rpe:String(v.rpe??''),min:String(v.min??''),done:!!v.done};gsKeys.forEach(k=>{if(v[k]!=null)S.days[d][k]=String(v[k]).slice(0,k==='gC'?600:140)});dirty.add('days/'+d)}});
  Object.entries(x.weeks||{}).forEach(([w,v])=>{if(isDate(w)&&v){S.weeks[w]={note:String(v.note??'')};dirty.add('weeks/'+w)}});
  if(x.settings){setSettings(x.settings);dirty.add('settings/main')}
  local();renderAll();flushAll();status('Backup eingespielt.')}catch(err){status('Diese Datei ist kein gültiges Backup.')}e.target.value=''});
