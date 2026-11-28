@@ -74,7 +74,11 @@ Deno.serve(async (req) => {
         `${x.playerLastname} ${x.playerFirstname}`.toLowerCase().includes(CFG.lastname));
 
     const next: Record<string, unknown> = { ...cur };
-    for (const k of ["gG", "gA", "gPM", "gPIM", "gS", "gTOI", "gLine", "gPos", "gDNP"]) delete next[k];
+    for (const k of ["gG", "gA", "gPM", "gPIM", "gS", "gTOI", "gLine", "gPos", "gDNP", "gRes", "gOT"]) delete next[k];
+    // Ergebnis aus Sicht der Pioneers (eigene Tore : Gegentore), plus Verlängerung/Penaltyschießen
+    const hs = Number(g.gameData.homeTeamScore ?? 0), as = Number(g.gameData.awayTeamScore ?? 0);
+    next.gRes = isHome ? `${hs}:${as}` : `${as}:${hs}`;
+    next.gOT = g.gameData.isShootOut ? "SO" : g.gameData.isOvertime ? "OT" : "";
     if (p) {
       Object.assign(next, {
         gG: String(p.goals ?? 0), gA: String(p.assists ?? 0), gPM: String(p.plusMinus ?? 0),
