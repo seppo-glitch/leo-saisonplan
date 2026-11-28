@@ -130,6 +130,7 @@ body.ro .gsf{display:none}
 .gres.w{background:#1E8E5A;color:#fff}.gres.l{background:var(--red);color:#fff}
 .game.h .gres{box-shadow:0 0 0 1.5px rgba(255,255,255,.85)}
 .gsg .span-all{grid-column:1/-1}.gsg .span-all .in{text-align:left;padding:6px 8px}
+.glog .rep{font-size:12px;font-weight:600;color:var(--saison);margin-left:6px;white-space:nowrap}
 .trec{margin:0 0 10px;font-size:14px;color:var(--mut)}.trec b{color:var(--ink)}
 .gr{font-weight:700;white-space:nowrap}.gr.w{color:#1E8E5A}.gr.l{color:var(--red)}
 .srcl{font-size:13px;color:var(--saison);align-self:flex-start;padding:4px 0}

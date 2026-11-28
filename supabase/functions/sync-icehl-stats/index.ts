@@ -17,7 +17,8 @@ const CFG = {
 };
 const BASE = "https://s3-eu-west-1.amazonaws.com/icehl.hokejovyzapis.cz";
 
-type Match = { id: number; start_date: string; status: string; home: { shortcut: string }; guest: { shortcut: string } };
+type Match = { id: number; start_date: string; status: string; home: { shortcut: string }; guest: { shortcut: string };
+  results?: { extra_time?: boolean; shooting?: boolean } };
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
@@ -78,7 +79,8 @@ Deno.serve(async (req) => {
     // Ergebnis aus Sicht der Pioneers (eigene Tore : Gegentore), plus Verlängerung/Penaltyschießen
     const hs = Number(g.gameData.homeTeamScore ?? 0), as = Number(g.gameData.awayTeamScore ?? 0);
     next.gRes = isHome ? `${hs}:${as}` : `${as}:${hs}`;
-    next.gOT = g.gameData.isShootOut ? "SO" : g.gameData.isOvertime ? "OT" : "";
+    // Verlängerung/Penaltys aus dem Spielplan (die Detaildatei meldet isOvertime nicht zuverlässig)
+    next.gOT = m.results?.shooting || g.gameData.isShootOut ? "SO" : m.results?.extra_time || g.gameData.isOvertime ? "OT" : "";
     if (p) {
       Object.assign(next, {
         gG: String(p.goals ?? 0), gA: String(p.assists ?? 0), gPM: String(p.plusMinus ?? 0),
